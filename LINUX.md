@@ -228,15 +228,41 @@ Russian text English players saw came from backend strings, and has been moved
 into the seven language packs in `crates/du-prompts/assets/`:
 
 - Quick-action chips (the buttons after a fight or encounter): the JSON schema
-  descriptions, reminder, and action prompt are now language-specific. Verified
-  through `/api/actions`: English passages produced English labels, Russian
-  passages still produced Russian ones.
+  descriptions, reminder, and action prompt are now language-specific. The UI
+  also sends `language` explicitly, and the helper endpoints accept it either at
+  the top level or inside `settings`; previously the UI sent it only inside
+  `settings`, so real fights silently fell back to Russian. Verified through
+  `/api/actions`: English passages produced English labels, Russian passages
+  still produced Russian ones.
 - Journal lines for quests, XP, level-ups, rolls and achievements, plus the game
   state header and ability names, now follow the story language.
 - Tool calls and the mechanics pass receive the same language directive as the
   narrator, so model-written quest titles no longer default to Russian.
 - HUD stage names, narration-failure notices, and default story/world text are
   translated through the UI dictionary; an English game now starts in English.
+
+## Linux-only model panels
+
+Upstream's setup manifest is Windows-first, and the React settings panel used to
+show options this fork cannot run. Both sides are now pinned to the Linux build:
+
+- `/api/setup/status` and `/api/setup/download` use a platform-filtered manifest.
+  The Windows `image-engine` and `narrator-engine` DLL bundles, Whisper EXE/CUDA
+  components, Parakeet DLL engines, and `whisper-cuda` are not offered and cannot
+  be downloaded through the API. Linux engines are still installed by the pinned
+  Pinokio scripts.
+- **What to download** applies the same filter client-side so stale/cached status
+  cannot suggest a Windows download. Only the Krea-2 weights, narrator GGUF,
+  Higgs voice assets/weights, and the voice pack remain.
+- **Model on device** shows the single bundled narrator GGUF (Gemma 4 12B IT
+  uncensored Q4_K_M) instead of five Ollama ids the server never loads. The
+  custom OpenAI-compatible server's `/models` list is unchanged.
+- **Images** reads the actual `/api/health` shape (`image.ready`/`engine`) rather
+  than the upstream `flux` field, so installed weights no longer appear missing.
+- **Speech recognition** is cloud-only in the Engines panel; local Whisper and
+  Parakeet options are hidden. `/api/asr` returns an explicit error if a saved
+  runtime still points at a local engine, and the mic is disabled unless cloud
+  ASR is enabled.
 
 ## Pinokio launcher
 

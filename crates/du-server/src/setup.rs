@@ -410,8 +410,36 @@ static COMPONENTS: &[Component] = &[
         },
     ];
 
+/// Компоненты, чьи движки процессор/видеокарта поставляются только для Windows.
+/// Linux-установщик кладёт свои `.so` рядом, но в внутриигровом манифесте их нет:
+/// показывать эти пункты и разрешать их докачку — значит предложить бесполезный
+/// набор DLL/EXE и испортить работу проверенных Linux-движков.
+const WINDOWS_ONLY_COMPONENTS: &[&str] = &[
+    "image-engine",
+    "narrator-engine",
+    "asr",
+    "asr-ultra",
+    "asr-gpu",
+    "whisper-cuda",
+    "whisper-tiny",
+    "whisper-base",
+    "whisper-small",
+    "whisper-medium",
+    "whisper-large-v3",
+    "whisper-large-v3-turbo",
+];
+
+/// Можно ли скачивать этот компонент в текущей сборке.
+pub fn available_on_this_platform(id: &str) -> bool {
+    cfg!(windows) || !WINDOWS_ONLY_COMPONENTS.contains(&id)
+}
+
 pub fn manifest() -> Vec<Component> {
-    COMPONENTS.to_vec()
+    COMPONENTS
+        .iter()
+        .filter(|component| available_on_this_platform(component.id))
+        .cloned()
+        .collect()
 }
 
 /// Какие настройки распознавания включает вариант: движок и его модель. Скачанный вариант сразу
@@ -1406,6 +1434,21 @@ mod tests {
                     assert!(!spec.marker.is_empty(), "{}: у архива нет признака готовности", component.id);
                 }
             }
+        }
+    }
+
+    #[test]
+    fn the_manifest_never_offers_windows_engines_on_linux() {
+        use super::{available_on_this_platform, manifest, WINDOWS_ONLY_COMPONENTS};
+        let ids: Vec<&str> = manifest().iter().map(|component| component.id).collect();
+        assert!(ids.contains(&"narrator") && ids.contains(&"image-dit"), "веса остаются доступными");
+        if cfg!(windows) {
+            assert!(ids.contains(&"image-engine"));
+        } else {
+            for id in WINDOWS_ONLY_COMPONENTS {
+                assert!(!ids.contains(id), "{id} нельзя скачивать в Linux");
+            }
+            assert!(!available_on_this_platform("whisper-tiny"));
         }
     }
 

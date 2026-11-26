@@ -3,6 +3,7 @@ import { ChevronRight, Download, Loader2, Check, X } from "lucide-react";
 import { useUi, useUiLanguage } from "@/lib/ui-text-context";
 import { panelText } from "@/lib/ui-text-panels";
 import { componentText } from "@/lib/ui-text-components";
+import { linuxCompatibleComponents } from "@/lib/linux-compat";
 import { programName } from "@/lib/programs";
 import { hubChanged, setTelemetry, telemetryPreview, useHubState } from "@/lib/studioHub";
 
@@ -62,8 +63,11 @@ export default function SetupPanel() {
   const refresh = useCallback(async () => {
     try {
       const data = await (await fetch("/api/setup/status")).json();
-      setComponents(data.components ?? []);
-      return (data.components ?? []) as Component[];
+      // Сервер тоже фильтрует манифест, но фильтр и здесь: старый сервер или кэш
+      // не должен предложить Windows DLL/EXE как недостающее essential.
+      const list = linuxCompatibleComponents((data.components ?? []) as Component[]);
+      setComponents(list);
+      return list;
     } catch {
       setNote(panel.componentsUnreadable);
       return [];

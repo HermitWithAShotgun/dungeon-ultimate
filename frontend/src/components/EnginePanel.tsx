@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Loader2 } from "lucide-react";
+import { PINNED_LINUX_BUILD } from "@/lib/linux-compat";
 import { useUi, useUiLanguage } from "@/lib/ui-text-context";
 import { panelText, type PanelText } from "@/lib/ui-text-panels";
 
@@ -513,7 +514,9 @@ export default function EnginePanel() {
                   {/* Три положения в одну строку: перенос читался бы как отдельные кнопки. */}
                   <div className="flex shrink-0 overflow-hidden rounded border border-stone-800">
                     {[...whereOptions(panel), ...(stage.key === "narrator" ? [{ value: "agent" as Where, label: panel.byAgent }] : [])].filter(
-                      (option) => option.value !== "cpu" || stage.cpu,
+                      (option) =>
+                        (option.value !== "cpu" || stage.cpu) &&
+                        !(PINNED_LINUX_BUILD && stage.key === "asr" && option.value !== "cloud"),
                     ).map((option) => (
                       <button
                         key={option.value}
@@ -619,52 +622,59 @@ export default function EnginePanel() {
                   </>
                 ) : (
                   <p className="text-xs text-stone-600">
-                    {stage.key === "asr" && (
-                      <span className="mb-1 block">
-                        <Row label={panel.asrVariant}>
-                          <select
-                            value={
-                              ASR_VARIANTS.find((variant) =>
-                                variant.engine === (runtime.asrEngine || "parakeet") &&
-                                variant.model === (variant.engine === "whisper" ? runtime.whisperModel : runtime.asrModel || "int8"),
-                              )?.id ?? "asr"
-                            }
-                            onChange={(event) => {
-                              const variant = ASR_VARIANTS.find((v) => v.id === event.target.value);
-                              if (!variant) return;
-                              const next = (variant.engine === "whisper"
-                                ? { asrEngine: "whisper", whisperModel: variant.model }
-                                : { asrEngine: "parakeet", asrModel: variant.model }) as Partial<Runtime>;
-                              setRuntime((current) => (current ? { ...current, ...next } : current));
-                              void save(next);
-                            }}
-                            className={box}
-                          >
-                            {ASR_VARIANTS.map((variant) => (
-                              <option key={variant.id} value={variant.id}>
-                                {variant.id === "asr"
-                                  ? panel.asrParakeet
-                                  : variant.id === "asr-ultra"
-                                    ? panel.asrUltra
-                                    : panel.asrWhisperModel.replace("{model}", variant.model)}
-                                {installed.has(variant.id) ? "" : panel.notDownloaded}
-                              </option>
-                            ))}
-                          </select>
-                        </Row>
-                      </span>
-                    )}
+                    {stage.key === "asr" &&
+                      (PINNED_LINUX_BUILD ? (
+                        <span className="mb-1 block text-amber-200/80">{panel.asrCloudOnly}</span>
+                      ) : (
+                        <span className="mb-1 block">
+                          <Row label={panel.asrVariant}>
+                            <select
+                              value={
+                                ASR_VARIANTS.find((variant) =>
+                                  variant.engine === (runtime.asrEngine || "parakeet") &&
+                                  variant.model === (variant.engine === "whisper" ? runtime.whisperModel : runtime.asrModel || "int8"),
+                                )?.id ?? "asr"
+                              }
+                              onChange={(event) => {
+                                const variant = ASR_VARIANTS.find((v) => v.id === event.target.value);
+                                if (!variant) return;
+                                const next = (variant.engine === "whisper"
+                                  ? { asrEngine: "whisper", whisperModel: variant.model }
+                                  : { asrEngine: "parakeet", asrModel: variant.model }) as Partial<Runtime>;
+                                setRuntime((current) => (current ? { ...current, ...next } : current));
+                                void save(next);
+                              }}
+                              className={box}
+                            >
+                              {ASR_VARIANTS.map((variant) => (
+                                <option key={variant.id} value={variant.id}>
+                                  {variant.id === "asr"
+                                    ? panel.asrParakeet
+                                    : variant.id === "asr-ultra"
+                                      ? panel.asrUltra
+                                      : panel.asrWhisperModel.replace("{model}", variant.model)}
+                                  {installed.has(variant.id) ? "" : panel.notDownloaded}
+                                </option>
+                              ))}
+                            </select>
+                          </Row>
+                        </span>
+                      ))}
                     {stage.key === "narrator" && chosenWhere === "cpu" && (
                       <span className="mb-1 block text-amber-500/80">{panel.cpuSlowNote}</span>
                     )}
-                    {stage.local} · {panel.computesWord}{" "}
-                    {decided[stage.key] === "cpu"
-                      ? panel.cpuWord
-                      : decided[stage.key] === "gpu"
-                        ? panel.gpuWord
-                        : chosenWhere === "cpu"
+                    {!(PINNED_LINUX_BUILD && stage.key === "asr") && (
+                      <>
+                        {stage.local} · {panel.computesWord}{" "}
+                        {decided[stage.key] === "cpu"
                           ? panel.cpuWord
-                          : panel.gpuWord}
+                          : decided[stage.key] === "gpu"
+                            ? panel.gpuWord
+                            : chosenWhere === "cpu"
+                              ? panel.cpuWord
+                              : panel.gpuWord}
+                      </>
+                    )}
                   </p>
                 )}
               </div>

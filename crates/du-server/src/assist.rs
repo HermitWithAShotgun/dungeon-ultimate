@@ -20,12 +20,24 @@ use crate::turn::structured_sampling;
 
 type ApiResult<T> = Result<T, ApiError>;
 
+/// Язык приходит либо отдельным полем, либо внутри настроек истории. Фронтенд
+/// долгое время посылал только `settings`, из-за чего все чипсы и подсказки
+/// становились русскими даже в англоязычной партии.
+#[derive(Deserialize)]
+pub struct LanguageCarrier {
+    pub language: Option<Language>,
+}
+
+fn resolve_language(explicit: Option<Language>, settings: Option<&LanguageCarrier>) -> Language {
+    explicit.or_else(|| settings.and_then(|settings| settings.language)).unwrap_or_default()
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActionsBody {
     pub passage: String,
-    #[serde(default)]
-    pub language: Language,
+    pub language: Option<Language>,
+    pub settings: Option<LanguageCarrier>,
 }
 
 /// Чипсы быстрых действий после хода: три-четыре коротких и РАЗНЫХ варианта.
@@ -36,7 +48,7 @@ pub async fn actions(
     // Длинный пассаж режем: модели хватает финала сцены, а лишний контекст только
     // замедляет служебный вызов.
     let passage: String = body.passage.chars().rev().take(4000).collect::<Vec<_>>().into_iter().rev().collect();
-    let prompts = prompts_for(body.language);
+    let prompts = prompts_for(resolve_language(body.language, body.settings.as_ref()));
     let schema = json!({
         "type": "object",
         "additionalProperties": false,
@@ -113,8 +125,8 @@ pub struct SuggestBody {
     pub field: String,
     #[serde(default)]
     pub context: String,
-    #[serde(default)]
-    pub language: Language,
+    pub language: Option<Language>,
+    pub settings: Option<LanguageCarrier>,
 }
 
 /// «Удиви меня» для одного поля новой истории — чтобы игрок не смотрел в пустую форму.
@@ -122,7 +134,7 @@ pub async fn suggest(
     State(state): State<AppState>,
     Json(body): Json<SuggestBody>,
 ) -> ApiResult<Json<Value>> {
-    let prompts = prompts_for(body.language);
+    let prompts = prompts_for(resolve_language(body.language, body.settings.as_ref()));
     let instruction = match body.field.as_str() {
         "world" => &prompts.suggest.fields.world,
         "style" => &prompts.suggest.fields.style,
@@ -148,8 +160,8 @@ pub struct SetupBody {
     pub setting: String,
     #[serde(default)]
     pub gender: String,
-    #[serde(default)]
-    pub language: Language,
+    pub language: Option<Language>,
+    pub settings: Option<LanguageCarrier>,
 }
 
 /// «Заполни за меня» в диалоге новой истории: имя, образ и подсказка первой сцены.
@@ -178,7 +190,7 @@ pub async fn story_setup(
              roleplaying game. The name is short, the persona is one phrase, the hint is one \
              sentence."
         )),
-        Message::system(crate::turn::language_directive(body.language)),
+        Message::system(crate::turn::language_directive(resolve_language(body.language, body.settings.as_ref()))),
         Message::user(if body.setting.trim().is_empty() {
             "Choose a setting you like.".to_string()
         } else {
@@ -381,6 +393,8 @@ async fn ask_text(state: &AppState, messages: Vec<Message>, sampling: Sampling) 
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     fn an_unknown_suggest_field_is_rejected_before_the_model_is_touched() {
         // Проверяем сам разбор поля: до модели такой запрос доходить не должен.
@@ -395,6 +409,39 @@ mod tests {
         assert_eq!(trimmed.chars().count(), 4000);
         // Хвост сцены обязан сохраниться: именно он описывает текущий момент.
         assert!(passage.ends_with(&trimmed));
+    }
+
+    #[test]
+    fn helper_payloads_take_language_from_settings_when_it_is_not_top_level() {
+        // Именно так фронтенд посылал чипсы и «удиви меня»: language был только
+        // внутри settings, а сервер молча считал игру русской.
+        let actions: super::ActionsBody = serde_json::from_value(json!({
+            "passage": "A goblin blocks the bridge.",
+            "settings": { "language": "en" }
+        }))
+        .unwrap();
+        assert_eq!(resolve_language(actions.language, actions.settings.as_ref()), Language::En);
+
+        let suggest: super::SuggestBody = serde_json::from_value(json!({
+            "field": "world",
+            "settings": { "language": "de" }
+        }))
+        .unwrap();
+        assert_eq!(resolve_language(suggest.language, suggest.settings.as_ref()), Language::De);
+
+        let setup: super::SetupBody = serde_json::from_value(json!({
+            "setting": "A quiet village",
+            "settings": { "language": "fr" }
+        }))
+        .unwrap();
+        assert_eq!(resolve_language(setup.language, setup.settings.as_ref()), Language::Fr);
+    }
+
+    #[test]
+    fn an_explicit_language_still_wins_over_the_settings_carrier() {
+        let settings: LanguageCarrier = serde_json::from_value(json!({ "language": "ru" })).unwrap();
+        assert_eq!(resolve_language(Some(Language::Ja), Some(&settings)), Language::Ja);
+        assert_eq!(resolve_language(None, None), Language::Ru);
     }
 }
 

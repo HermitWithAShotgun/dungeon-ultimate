@@ -57,6 +57,10 @@ import {
 import { api } from "./lib/api";
 import { cn } from "./lib/cn";
 import { DEFAULT_STORY_SETTINGS, localizedStorySettings, titleFromInput } from "./lib/defaults";
+import {
+  LINUX_PINNED_LOCAL_TEXT_MODEL,
+  PINNED_LINUX_BUILD,
+} from "./lib/linux-compat";
 import { LOCAL_TEXT_MODELS, type LocalTextModelId, type TextProvider } from "./lib/text-models";
 import {
   LANGUAGE_LABELS,
@@ -275,14 +279,49 @@ type ImageWorkerStatus = {
   ok: boolean;
   loaded?: boolean;
   defaultBackend?: string;
+  engine?: string;
+  devices?: string[];
   mfluxDir?: string;
   ultraRepo?: string;
 };
 type RuntimeDefaultsResponse = { settings?: StorySettings };
+/// Старый сервер отдавал `localText`/`flux`, этот Linux-сервер — `text`/`image`.
+/// Принимаем обе формы, иначе интерфейс считал готовые движки отсутствующими.
 type RuntimeHealthResponse = {
   localText?: LocalTextStatus;
   flux?: ImageWorkerStatus;
+  ok?: boolean;
+  text?: { ready?: boolean };
+  image?: { ready?: boolean; inCloud?: boolean; engine?: string; devices?: string[] };
 };
+
+function normalizedRuntimeHealth(payload: RuntimeHealthResponse): {
+  localText: LocalTextStatus;
+  image: ImageWorkerStatus;
+} {
+  const ready = payload.text?.ready === true;
+  return {
+    localText: payload.localText ?? {
+      ok: ready,
+      installedModels: ready ? [LINUX_PINNED_LOCAL_TEXT_MODEL] : [],
+    },
+    image: payload.flux ?? {
+      ok: payload.image?.ready === true && payload.image.inCloud !== true,
+      loaded: payload.image?.ready === true,
+      defaultBackend: payload.image?.engine || "sd.cpp",
+      devices: payload.image?.devices,
+    },
+  };
+}
+
+function normalizedImageWorkerStatus(status: ImageWorkerStatus | undefined): ImageWorkerStatus | undefined {
+  if (!status) return undefined;
+  return {
+    ...status,
+    ok: status.ok === true,
+    defaultBackend: status.defaultBackend || status.engine || "sd.cpp",
+  };
+}
 type ImageWorkerActionResponse = {
   ok: boolean;
   status?: "running" | "starting";
@@ -520,6 +559,8 @@ export default function Home() {
   const [stageLabel, setStageLabel] = useState("");
   /// Короткая сводка: что считает своя карта, а что облако.
   const [routing, setRouting] = useState("");
+  /// Микрофон в этой сборке работает только через облако: локальные ASR-движки Windows-only.
+  const [asrCloudOn, setAsrCloudOn] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -536,8 +577,13 @@ export default function Home() {
             [settings_.stageVoiceWord, "openrouterTtsOn"],
             [settings_.stageSpeechWord, "openrouterAsrOn"],
           ] as const
-        ).forEach(([label, flag]) => (runtime[flag] ? cloud : local).push(label));
+        ).forEach(([label, flag]) => {
+          // В Linux локального ASR нет: не называем «своей картой» то, что не запустится.
+          if (PINNED_LINUX_BUILD && flag === "openrouterAsrOn" && !runtime[flag]) return;
+          (runtime[flag] ? cloud : local).push(label);
+        });
         if (!alive) return;
+        setAsrCloudOn(runtime.openrouterAsrOn === true);
         const narrator = String(runtime.openrouterNarratorModel || "").split("/").pop();
         setRouting(
           cloud.length === 0
@@ -547,7 +593,10 @@ export default function Home() {
               : `${ui.cloudPrefix}: ${cloud.join(", ")} · ${ui.cardPrefix}: ${local.join(", ")}`,
         );
       } catch {
-        if (alive) setRouting("");
+        if (alive) {
+          setRouting("");
+          setAsrCloudOn(false);
+        }
       }
     };
     void read();
@@ -1098,8 +1147,9 @@ export default function Home() {
   }, [applyChat, applyDefaultSettings, refreshChats]);
 
   const applyRuntimeHealth = useCallback((payload: RuntimeHealthResponse) => {
-    setLocalTextStatus(payload.localText ?? { ok: false, installedModels: [] });
-    setImageWorkerStatus(payload.flux ?? { ok: false, loaded: false });
+    const health = normalizedRuntimeHealth(payload);
+    setLocalTextStatus(health.localText);
+    setImageWorkerStatus(health.image);
   }, []);
 
   const refreshRuntimeHealth = useCallback(async () => {
@@ -1227,9 +1277,12 @@ export default function Home() {
         body: JSON.stringify({ action: "start" }),
       });
       const payload = await readApi<ImageWorkerActionResponse>(response);
-      setImageWorkerMessage(payload.message || settings_.imageServerRequested);
-      if (payload.health) {
-        setImageWorkerStatus(payload.health);
+      // Серверный «message» остался русским и описывает отдельный сервер картинок,
+      // которого в этой сборке нет. Показываем локализованный статус самого движка.
+      setImageWorkerMessage(PINNED_LINUX_BUILD ? settings_.frameEngineNote : payload.message || settings_.imageServerRequested);
+      const health = normalizedImageWorkerStatus(payload.health);
+      if (health) {
+        setImageWorkerStatus(health);
       }
       await refreshRuntimeHealth();
     } catch (workerError) {
@@ -2373,7 +2426,7 @@ export default function Home() {
         const response = await fetch("/api/actions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ passage, settings }),
+          body: JSON.stringify({ passage, language: settings.language, settings }),
         });
         return (await response.json()) as {
           actions?: Array<{ emoji?: string; label: string }>;
@@ -3085,7 +3138,9 @@ export default function Home() {
                         }
                         onError={setError}
                         language={settings.language ?? "ru"}
-                        disabled={busy || libraryLoading}
+                        disabled={
+                          busy || libraryLoading || (PINNED_LINUX_BUILD && !asrCloudOn)
+                        }
                       />
                     </div>
                     <div className="flex items-center gap-3">
@@ -4473,35 +4528,41 @@ function TextModelPanel({
       </div>
       {settings.textProvider === "local" ? (
         <div className="space-y-2">
-          <span className="block text-xs font-medium uppercase text-stone-500">
-            Gemma 4 QAT (Q4)
-          </span>
-          <select
-            id={`${idPrefix}-local-text-model`}
-            name={`${idPrefix}-local-text-model`}
-            value={settings.localTextModel}
-            onChange={(event) =>
-              setSettings((current) => ({
-                ...current,
-                localTextModel: event.target.value as LocalTextModelId,
-              }))
-            }
-            className="w-full rounded border border-stone-800 bg-stone-950 px-3 py-2 text-sm text-stone-200 outline-none focus:border-amber-300"
-          >
-            {LOCAL_TEXT_MODELS.map((model) => {
-              const missing =
-                localTextStatus?.ok && !localTextStatus.installedModels.includes(model.id);
-              return (
-                <option key={model.id} value={model.id}>
-                  {`${model.label} · ${model.ram} RAM${missing ? ` · needs ${model.size} download` : ""}`}
-                </option>
-              );
-            })}
-          </select>
+          {PINNED_LINUX_BUILD ? (
+            <p className="text-xs leading-relaxed text-stone-400">{settings_.bundledModelOnly}</p>
+          ) : (
+            <>
+              <span className="block text-xs font-medium uppercase text-stone-500">
+                Gemma 4 QAT (Q4)
+              </span>
+              <select
+                id={`${idPrefix}-local-text-model`}
+                name={`${idPrefix}-local-text-model`}
+                value={settings.localTextModel}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    localTextModel: event.target.value as LocalTextModelId,
+                  }))
+                }
+                className="w-full rounded border border-stone-800 bg-stone-950 px-3 py-2 text-sm text-stone-200 outline-none focus:border-amber-300"
+              >
+                {LOCAL_TEXT_MODELS.map((model) => {
+                  const missing =
+                    localTextStatus?.ok && !localTextStatus.installedModels.includes(model.id);
+                  return (
+                    <option key={model.id} value={model.id}>
+                      {`${model.label} · ${model.ram} RAM${missing ? ` · needs ${model.size} download` : ""}`}
+                    </option>
+                  );
+                })}
+              </select>
+            </>
+          )}
           {localTextStatus && !localTextStatus.ok && (
             <p className="text-xs text-amber-200/80">{settings_.localModelUnavailable}</p>
           )}
-          {selectedMissing && (
+          {!PINNED_LINUX_BUILD && selectedMissing && (
             <p className="text-xs text-amber-200/80">{settings_.localModelMissing}</p>
           )}
         </div>
@@ -6473,7 +6534,7 @@ function DiceButton({
       const response = await fetch("/api/suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ field, context, settings }),
+        body: JSON.stringify({ field, context, language: settings.language, settings }),
       });
       const data = (await response.json()) as { value?: string };
       if (response.ok && data.value) {

@@ -522,6 +522,19 @@ pub async fn setup_download(
     State(state): State<AppState>,
     Json(body): Json<SetupDownload>,
 ) -> ApiResult<Json<Value>> {
+    // Отвергаем id, которых нет в доступном манифесте. Раньше неизвестный или
+    // windows-only компонент молча пропускался, и интерфейс показывал «готово»,
+    // хотя ничего не скачалось.
+    let available = crate::setup::manifest();
+    if let Some(id) = body
+        .ids
+        .iter()
+        .find(|id| !available.iter().any(|component| component.id == id.as_str()))
+    {
+        return Err(ApiError::bad_request(format!(
+            "component {id} is not available on this platform"
+        )));
+    }
     crate::setup::forget_failures(&body.ids);
     let inner = state.0.clone();
     // Закачка идёт МИМО очереди к видеокарте: это сеть, и ждать чужого кадра ей незачем.
@@ -627,6 +640,15 @@ pub async fn runtime_put(
     }
     let parsed: crate::runtime::Runtime = serde_json::from_value(merged)
         .map_err(|error| ApiError::bad_request(format!("непонятная настройка: {error}")))?;
+    // На этой сборке локальное распознавание недоступно: движок upstream только под
+    // Windows. Из панели вариант скрыт, но API должен отвечать так же, иначе сохранённый
+    // ранее выбор Whisper продолжал бы ломать микрофон после обновления.
+    #[cfg(not(windows))]
+    if body.get("asrEngine").is_some() || body.get("whisperModel").is_some() {
+        return Err(ApiError::bad_request(
+            "local speech recognition is unavailable on Linux; use cloud ASR",
+        ));
+    }
     let mut next = crate::runtime::sanitize(parsed);
     // Сменил модель озвучки — голос от прежней у новой не существует, и синтез падал бы на
     // каждой реплике. Если голос не из её набора, подставляем подходящий сами.

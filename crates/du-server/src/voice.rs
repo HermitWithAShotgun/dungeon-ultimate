@@ -120,6 +120,15 @@ async fn transcribe_inner(State(state): State<AppState>, language: du_core::Lang
     }
     let runtime = crate::runtime::load(&state.root);
     let in_cloud = crate::cloud::stage_enabled(&runtime, crate::cloud::Stage::Asr);
+    // transcribe.cpp и faster-whisper поставляются только для Windows. На Linux не даём
+    // даже попасть в проверку файлов: старый выбор Whisper в runtime.json иначе вывел бы
+    // игрока на подсказку скачать windows.exe, которого в этой сборке нет.
+    #[cfg(not(windows))]
+    if !in_cloud {
+        return Err(ApiError::internal(
+            "local speech recognition is unavailable on Linux; enable cloud speech-to-text",
+        ));
+    }
     let by_whisper = runtime.asr_engine.trim().eq_ignore_ascii_case("whisper");
     let models_root = state.root.join("models");
     let parakeet = crate::setup::parakeet_model(&runtime);

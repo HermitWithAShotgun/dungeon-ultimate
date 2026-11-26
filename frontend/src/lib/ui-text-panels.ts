@@ -81,6 +81,7 @@ export type PanelText = {
   googleKeyHint: string;
   googleKeyFromEnv: string;
   asrVariant: string;
+  asrCloudOnly: string;
   asrUltra: string;
   asrWhisperModel: string;
   notDownloaded: string;
@@ -198,6 +199,7 @@ const RU: PanelText = {
   googleKeyHint: "Ключ Google AI Studio для голосов Gemini: {state}. Хранится в папке игры.",
   googleKeyFromEnv: "задан переменной GEMINI_API_KEY",
   asrVariant: "Чем распознавать речь",
+  asrCloudOnly: "Локальное распознавание речи недоступно в Linux — только облако.",
   asrUltra: "Parakeet Ultra — точнее на тех же 25 языках",
   asrWhisperModel: "Whisper {model} — понимает почти все языки мира",
   notDownloaded: " — не скачан",
@@ -314,6 +316,7 @@ const EN: PanelText = {
   googleKeyHint: "Google AI Studio key for Gemini voices: {state}. Kept in the game folder.",
   googleKeyFromEnv: "set by the GEMINI_API_KEY variable",
   asrVariant: "How speech is recognised",
+  asrCloudOnly: "Local speech recognition is unavailable on Linux — cloud only.",
   asrUltra: "Parakeet Ultra — more precise on the same 25 languages",
   asrWhisperModel: "Whisper {model} — understands almost every language",
   notDownloaded: " — not downloaded",
@@ -430,6 +433,7 @@ const ES: PanelText = {
   googleKeyHint: "Clave de Google AI Studio para las voces de Gemini: {state}. Se guarda en la carpeta del juego.",
   googleKeyFromEnv: "definida en la variable GEMINI_API_KEY",
   asrVariant: "Cómo se reconoce la voz",
+  asrCloudOnly: "El reconocimiento local de voz no está disponible en Linux: solo nube.",
   asrUltra: "Parakeet Ultra: más preciso en los mismos 25 idiomas",
   asrWhisperModel: "Whisper {model}: entiende casi todos los idiomas",
   notDownloaded: " (sin descargar)",
@@ -546,6 +550,7 @@ const FR: PanelText = {
   googleKeyHint: "Clé Google AI Studio pour les voix Gemini : {state}. Gardée dans le dossier du jeu.",
   googleKeyFromEnv: "définie par la variable GEMINI_API_KEY",
   asrVariant: "Comment la parole est reconnue",
+  asrCloudOnly: "La reconnaissance vocale locale n'est pas disponible sous Linux : cloud uniquement.",
   asrUltra: "Parakeet Ultra — plus précis sur les mêmes 25 langues",
   asrWhisperModel: "Whisper {model} — comprend presque toutes les langues",
   notDownloaded: " — pas téléchargé",
@@ -662,6 +667,7 @@ const DE: PanelText = {
   googleKeyHint: "Google-AI-Studio-Schlüssel für Gemini-Stimmen: {state}. Liegt im Spielordner.",
   googleKeyFromEnv: "über die Variable GEMINI_API_KEY gesetzt",
   asrVariant: "Womit Sprache erkannt wird",
+  asrCloudOnly: "Lokale Spracherkennung ist unter Linux nicht verfügbar – nur Cloud.",
   asrUltra: "Parakeet Ultra — genauer bei denselben 25 Sprachen",
   asrWhisperModel: "Whisper {model} — versteht fast alle Sprachen",
   notDownloaded: " — nicht geladen",
@@ -778,6 +784,7 @@ const ZH: PanelText = {
   googleKeyHint: "Gemini 语音的 Google AI Studio 密钥：{state}。保存在游戏文件夹中。",
   googleKeyFromEnv: "由环境变量 GEMINI_API_KEY 提供",
   asrVariant: "用什么识别语音",
+  asrCloudOnly: "Linux 上不支持本地语音识别，仅支持云端。",
   asrUltra: "Parakeet Ultra——同样 25 种语言，更准",
   asrWhisperModel: "Whisper {model}——几乎能听懂所有语言",
   notDownloaded: "（未下载）",
@@ -894,6 +901,7 @@ const JA: PanelText = {
   googleKeyHint: "Gemini の声に使う Google AI Studio キー：{state}。ゲームのフォルダーに保存。",
   googleKeyFromEnv: "環境変数 GEMINI_API_KEY で設定済み",
   asrVariant: "音声を何で認識するか",
+  asrCloudOnly: "Linux ではローカル音声認識は利用できません。クラウドのみです。",
   asrUltra: "Parakeet Ultra——同じ25言語でより正確",
   asrWhisperModel: "Whisper {model}——ほぼすべての言語がわかる",
   notDownloaded: "（未ダウンロード）",

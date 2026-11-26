@@ -255,6 +255,7 @@ export type SettingsText = {
   builtInModel: string;
   localModelUnavailable: string;
   localModelMissing: string;
+  bundledModelOnly: string;
   quickFill: string;
   serverUrl: string;
   model: string;
@@ -534,6 +535,7 @@ const RU: SettingsText = {
   builtInModel: "Встроенная модель",
   localModelUnavailable: "Встроенная модель не отвечает. Проверь, что она скачана, и перезапусти игру.",
   localModelMissing: "Модель не скачана. Докачай её на экране данных на диске.",
+  bundledModelOnly: "Встроенная модель: Gemma 4 12B IT uncensored Q4_K_M. Другие локальные модели не поддерживаются.",
   quickFill: "Быстрое заполнение",
   serverUrl: "URL сервера",
   model: "Модель",
@@ -812,6 +814,7 @@ const EN: SettingsText = {
   builtInModel: "Built-in model",
   localModelUnavailable: "The built-in model is not responding. Check that it is downloaded and restart the game.",
   localModelMissing: "The model is not downloaded. Fetch it from the data-on-disk panel.",
+  bundledModelOnly: "Bundled model: Gemma 4 12B IT uncensored Q4_K_M. Other local models are not supported.",
   quickFill: "Quick fill",
   serverUrl: "Server URL",
   model: "Model",
@@ -1090,6 +1093,7 @@ const ES: SettingsText = {
   builtInModel: "Modelo integrado",
   localModelUnavailable: "El modelo integrado no responde. Comprueba que esté descargado y reinicia el juego.",
   localModelMissing: "El modelo no está descargado. Descárgalo desde el panel de datos en disco.",
+  bundledModelOnly: "Modelo integrado: Gemma 4 12B IT uncensored Q4_K_M. No se admiten otros modelos locales.",
   quickFill: "Relleno rápido",
   serverUrl: "URL del servidor",
   model: "Modelo",
@@ -1369,6 +1373,7 @@ const FR: SettingsText = {
   builtInModel: "Modèle intégré",
   localModelUnavailable: "Le modèle intégré ne répond pas. Vérifie qu'il est téléchargé et relance le jeu.",
   localModelMissing: "Le modèle n'est pas téléchargé. Récupère-le depuis le panneau des données sur le disque.",
+  bundledModelOnly: "Modèle intégré : Gemma 4 12B IT uncensored Q4_K_M. Les autres modèles locaux ne sont pas pris en charge.",
   quickFill: "Remplissage rapide",
   serverUrl: "URL du serveur",
   model: "Modèle",
@@ -1647,6 +1652,7 @@ const DE: SettingsText = {
   builtInModel: "Eingebautes Modell",
   localModelUnavailable: "Das eingebaute Modell antwortet nicht. Prüfe, ob es heruntergeladen ist, und starte das Spiel neu.",
   localModelMissing: "Das Modell ist nicht heruntergeladen. Hole es über das Panel „Daten auf der Festplatte“.",
+  bundledModelOnly: "Integriertes Modell: Gemma 4 12B IT uncensored Q4_K_M. Andere lokale Modelle werden nicht unterstützt.",
   quickFill: "Schnellausfüllen",
   serverUrl: "Server-URL",
   model: "Modell",
@@ -1925,6 +1931,7 @@ const ZH: SettingsText = {
   builtInModel: "内置模型",
   localModelUnavailable: "内置模型没有响应。请确认已下载，然后重新启动游戏。",
   localModelMissing: "模型尚未下载。请在磁盘数据面板中获取。",
+  bundledModelOnly: "内置模型：Gemma 4 12B IT uncensored Q4_K_M。不支持其他本地模型。",
   quickFill: "快速填写",
   serverUrl: "服务器 URL",
   model: "模型",
@@ -2203,6 +2210,7 @@ const JA: SettingsText = {
   builtInModel: "内蔵モデル",
   localModelUnavailable: "内蔵モデルが応答しません。ダウンロード済みか確認し、ゲームを再起動してください。",
   localModelMissing: "モデルがダウンロードされていません。ディスク上のデータのパネルから取得してください。",
+  bundledModelOnly: "内蔵モデル: Gemma 4 12B IT uncensored Q4_K_M。他のローカルモデルはサポートされていません。",
   quickFill: "クイック入力",
   serverUrl: "サーバー URL",
   model: "モデル",
