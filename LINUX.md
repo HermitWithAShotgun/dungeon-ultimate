@@ -100,9 +100,35 @@ It can be used on Linux in two ways:
 The app downloads the GGUF itself from the **What to download** panel; no
 manual model files are required.
 
+## Local narrator (offline)
+
+```bash
+./scripts/install-narrator-linux.sh   # pinned llama.cpp CUDA 12.8 + Gemma 4 12B uncensored GGUF
+./scripts/run-linux.sh                # starts du-server; llama-server starts on first text turn
+./scripts/stop-linux.sh               # stops du-server and its llama-server child
+```
+
+The installer verifies every download by SHA-256 and installs into `DU_ROOT`
+(default: repo `data/`). The narrated model is **not running all the time**:
+
+- `du-server` starts `llama-server` lazily on the first text request
+  (`gpu.rs:137-169`) and holds it only for the session.
+- `run-linux.sh` puts `du-server` and its children in one process group; Ctrl-C,
+  `tmux kill-session`, or `stop-linux.sh` terminates both.
+- `LlamaServer::drop()` stops the child on graceful exit
+  (`du-llm/src/server.rs:215-219`).
+- If the app is SIGKILLed before cleanup, `du_llm::kill_orphans()` removes any
+  leftover `llama-server` from this `DU_ROOT` on the next start
+  (`lib.rs:145-148`, `server.rs:227-251`).
+
+To use it in a story, choose **Local** as the text provider (or keep `custom`
+and point `customBaseUrl` at the spawned server). The local path needs no
+OpenRouter key and no LAN endpoint.
+
 ## Next steps
 
-1. Linux llama.cpp CUDA binary for the bundled narrator (`setup.rs:223-224`).
+1. ~~Linux llama.cpp CUDA binary for the bundled narrator~~ done via the pinned
+   b11557 Ubuntu CUDA 12.8 release and `install-narrator-linux.sh`.
 2. Linux stable-diffusion.cpp `.so` plus platform-aware FFI names (`du-image`).
 3. Linux speech-to-text (transcribe.cpp or a faster-whisper shim).
 4. Local narration audio remains blocked upstream: the Higgs engine is only
