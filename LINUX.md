@@ -203,6 +203,12 @@ Like the narrator and image engines, the voice engine occupies the GPU only for
 as long as it is needed: loading it stops `llama-server`, and an image turn drops
 the voice engine before the sd.cpp weights come in.
 
+Cloud narration is already an opt-in in **Settings → Engines → Narration →
+Cloud** (OpenRouter or Google, with model and voice selection). Local Higgs stays
+the default; selecting Cloud routes `/api/tts` and story audio to the provider,
+and an unset key produces an explicit error instead of silently falling back to
+the GPU.
+
 Verified sequence: `/api/tts` returned a playable 24 kHz mono WAV, an image turn
 released the voice engine and rendered a PNG, and the following `/api/tts` call
 synthesized another clip with no orphan model processes.
