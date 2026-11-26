@@ -186,7 +186,7 @@ impl Gpu {
                 return Ok(engine.clone());
             }
         }
-        let dll = self.root.join("models").join("tts-engine").join("audiocpp_engine.dll");
+        let dll = crate::tts::engine_path(&self.root);
         let model_root = self.root.join("models").join("tts");
         if !dll.is_file() {
             return Err(GpuError::Missing("движок озвучки не установлен".into()));
@@ -195,8 +195,6 @@ impl Gpu {
         // и голос на 4 ГБ жили на карте одновременно, всё упиралось в память и ход занимал
         // одиннадцать минут вместо десятков секунд. Кадр так делал давно, озвучка — нет.
         self.release_text();
-        *self.resident.lock().unwrap_or_else(|e| e.into_inner()) = Resident::Speech;
-
         let engine = du_tts::AudiocppEngine::load(&dll)
             .map_err(|error| GpuError::Missing(error.to_string()))?;
         let runtime = crate::runtime::load(&self.root);
@@ -211,6 +209,7 @@ impl Gpu {
             .map_err(|error| GpuError::Missing(error.to_string()))?;
         let engine = Arc::new(engine);
         *self.speech.lock().unwrap_or_else(|e| e.into_inner()) = Some(engine.clone());
+        *self.resident.lock().unwrap_or_else(|e| e.into_inner()) = Resident::Speech;
         Ok(engine)
     }
 

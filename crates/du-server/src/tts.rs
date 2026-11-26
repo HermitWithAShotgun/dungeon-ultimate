@@ -60,6 +60,16 @@ fn voice_reference(root: &Path, voice: &str) -> Option<(PathBuf, Option<String>)
 }
 
 
+/// Имя движка зависит от платформы: upstream публикует DLL для Windows и `.so` для Linux
+/// с тем же C-ABI. Оба лежат в `models/tts-engine/` и грузятся одной и той же FFI-обвязкой.
+pub fn engine_path(root: &std::path::Path) -> std::path::PathBuf {
+    #[cfg(target_os = "windows")]
+    let name = "audiocpp_engine.dll";
+    #[cfg(not(target_os = "windows"))]
+    let name = "libaudiocpp_engine.so";
+    root.join("models").join("tts-engine").join(name)
+}
+
 /// Голоса нет на диске: «Пак голосов» необязателен при установке, и без него локальная озвучка не звучит вовсе.
 fn no_voice(voice: &str) -> String {
     if voice.trim().is_empty() {
@@ -227,7 +237,7 @@ pub fn synthesize_streaming(
     // Движку нужен WAV: паки лежат в mp3, поэтому клип один раз перегоняется и дальше
     // берётся готовым.
     let reference = ensure_wav_reference(&reference, runtime.tts_reference_seconds)?;
-    let engine_dll = root.join("models").join("tts-engine").join("audiocpp_engine.dll");
+    let engine_dll = engine_path(root);
     let model_root = root.join("models").join("tts");
     if !engine_dll.is_file() {
         return Err("движок озвучки не установлен".into());
@@ -341,6 +351,16 @@ mod tests {
         assert!(!escaped.contains('.') && !escaped.contains('/'), "в имени не должно остаться пути: {escaped}");
         assert_eq!(safe_name("RU_Male_kuravlev_leonid", 120), "RU_Male_kuravlev_leonid");
         assert_eq!(safe_name("very-long-name", 4), "very");
+    }
+
+    #[test]
+    fn engine_name_matches_the_platform() {
+        let root = std::path::Path::new("/du");
+        let path = engine_path(root);
+        #[cfg(windows)]
+        assert_eq!(path, root.join("models/tts-engine/audiocpp_engine.dll"));
+        #[cfg(not(windows))]
+        assert_eq!(path, root.join("models/tts-engine/libaudiocpp_engine.so"));
     }
 
     #[test]

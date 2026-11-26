@@ -5,8 +5,10 @@ desktop shell is intentionally not used: the Rust `du-server` binary serves the
 same React UI and the complete REST/SSE + MCP API on loopback.
 
 **Hardware support:** the local narrator and local image engines are built for
-NVIDIA CUDA 12.8 only. AMD/ROCm, Vulkan, and CPU image generation are not
-supported by this port. Cloud stages work independently of the GPU.
+NVIDIA CUDA 12.8; the Higgs narration engine is built for CUDA 13. The required
+CUDA 13 runtime libraries are installed privately beside the engine, so both
+major versions coexist in one process. AMD/ROCm, Vulkan, and CPU image generation
+are not supported by this port. Cloud stages work independently of the GPU.
 
 ## Status
 
@@ -19,7 +21,8 @@ supported by this port. Cloud stages work independently of the GPU.
 - [x] Local narrator: pinned llama.cpp b11557 Ubuntu CUDA 12.8 + Gemma 4 12B uncensored GGUF, started lazily by `du-server`.
 - [x] Local image weights downloaded and SHA-256 verified (Krea-2 Turbo, Qwen3-VL-4B, Wan VAE, identity-edit LoRA).
 - [x] Local stable-diffusion.cpp CUDA engine build and verified image turn (~17 s for a 1024×768 fast frame on an RTX 5090 Laptop).
-- [ ] Higgs TTS and transcribe.cpp remain Windows-only upstream (cloud TTS / no ASR is the workaround).
+- [x] Local Higgs narration audio: upstream Linux `.so` engine + CUDA 13 runtime, voice pack, and pinned weights; verified through `/api/tts`.
+- [ ] transcribe.cpp speech recognition remains Windows-only upstream (cloud ASR / no ASR is the workaround).
 - [x] Pinokio launcher at `PINOKIO_HOME/api/dungeon-ultimate-linux` (Install / Start / Update / Reset).
 - [ ] Tauri Linux desktop shell (optional; browser UI works).
 
@@ -171,12 +174,45 @@ ship incompatible ggml versions (llama.cpp 0.26 vs. sd.cpp 0.25), so neither the
 launcher nor the FFI may put the sd.cpp directory into `LD_LIBRARY_PATH`; the
 sd.cpp libraries use `RPATH=$ORIGIN` and backends load from absolute paths.
 
+## Local narration audio (offline)
+
+```bash
+./scripts/install-tts-linux.sh   # engine, CUDA 13 runtime, Higgs weights, voices
+./scripts/run-linux.sh           # starts du-server; the voice engine loads on first speech
+```
+
+The installer resumes interrupted downloads and verifies every asset by SHA-256:
+
+- `libaudiocpp_engine.so` from upstream release `engine-0.2.3-turing` (glibc ≥ 2.34, CUDA 13.3 build).
+- `libcudart.so.13`, `libcublas.so.13`, `libcublasLt.so.13` from pinned NVIDIA CUDA 13.2 Ubuntu packages, extracted privately into `DU_ROOT/models/tts-engine/` with `dpkg-deb -x`. No sudo and no system-wide library changes.
+- Higgs `q4_k_m` weights, tokenizer, and chat template under `DU_ROOT/models/tts/`.
+- The upstream voice pack, unpacked flat into `DU_ROOT/models/voices/`.
+
+The engine is loaded through the same `libloading` FFI as on Windows; `gpu.rs`
+and `tts.rs` pick `libaudiocpp_engine.so` on Linux and `audiocpp_engine.dll` on
+Windows. The in-app **What to download** list is platform-aware too: it no
+longer asks Linux players for the Windows DLL and its CUDA 13 wheels.
+
+Upstream's default story voice is `Vedushchiy`, but the public voice pack has no
+clip with that name. The installer creates a short 16 kHz mono `Vedushchiy.wav`
+from a neutral Russian male narrator clip (plus its transcript), so a fresh
+install speaks without asking the player to pick a voice first. Any other clip
+in the pack can still be selected in the story settings.
+
+Like the narrator and image engines, the voice engine occupies the GPU only for
+as long as it is needed: loading it stops `llama-server`, and an image turn drops
+the voice engine before the sd.cpp weights come in.
+
+Verified sequence: `/api/tts` returned a playable 24 kHz mono WAV, an image turn
+released the voice engine and rendered a PNG, and the following `/api/tts` call
+synthesized another clip with no orphan model processes.
+
 ## Pinokio launcher
 
 The launcher lives beside the `app/` and `data/` folders at
 `PINOKIO_HOME/api/dungeon-ultimate-linux`:
 
-- `install.js` — declares the `ai` bundle, then runs the three Linux installers.
+- `install.js` — declares the `ai` bundle, then runs `build-linux.sh` plus the three Linux installers (narrator, image, narration).
 - `start.js` — daemonized; asks Pinokio for a free loopback port, starts
   `scripts/run-linux.sh`, captures the printed URL, and sets the `url` local so
   the menu shows **Open Web UI**.
@@ -194,6 +230,6 @@ Stopping the script from Pinokio terminates the shell and the process group, so
    b11557 Ubuntu CUDA 12.8 release and `install-narrator-linux.sh`.
 2. ~~Linux stable-diffusion.cpp `.so` plus platform-aware FFI names (`du-image`).~~
    Done; CUDA engine loads through FFI and a real `/api/images` turn renders a PNG.
-3. Linux speech-to-text (transcribe.cpp or a faster-whisper shim).
-4. Local narration audio remains blocked upstream: the Higgs engine is only
-   published as a Windows DLL (`setup.rs:244`). Cloud TTS is the workaround.
+3. ~~Local narration audio~~ done via upstream's Linux `libaudiocpp_engine.so`,
+   pinned CUDA 13 runtime libraries, Higgs weights, and the voice pack.
+4. Linux speech-to-text (transcribe.cpp or a faster-whisper shim).

@@ -142,6 +142,20 @@ impl Component {
 const CUDART13: FileSpec = FileSpec::archive("downloads/tts-cudart.whl", "https://files.pythonhosted.org/packages/86/00/d5436004268f049214193659ebc36550b5ef3925c3d13b4cc980e13be6f5/nvidia_cuda_runtime-13.4.92-py3-none-win_amd64.whl", 2_778_543, "08dca5e4aba480c2fd5b55075c0fa71b84ef9dcf0521f2d58baa14a803a7311c", Extract::ZipDlls, "models/tts-engine", "models/tts-engine/cudart64_13.dll");
 const CUBLAS13: FileSpec = FileSpec::archive("downloads/tts-cublas.whl", "https://files.pythonhosted.org/packages/a3/df/f1246959833e2c437db8be3e5b477f66b87f8817821ed40de6c7561c9a36/nvidia_cublas-13.8.0.4-py3-none-win_amd64.whl", 423_266_897, "8c5494423bb8a46822cb6b0cb95d7fa4be2d7b96a31155dff083839ec8297910", Extract::ZipDlls, "models/tts-engine", "models/tts-engine/cublas64_13.dll");
 
+/// Windows needs the DLL plus CUDA 13 DLLs beside it. Linux gets `.so` with `RUNPATH=$ORIGIN`;
+/// the launcher installs the CUDA 13 libraries beside it, so only the engine itself is listed.
+#[cfg(windows)]
+static VOICE_ENGINE_FILES: &[FileSpec] = &[
+    FileSpec::plain("models/tts-engine/audiocpp_engine.dll", "https://github.com/timoncool/Higgs-Ultimate/releases/download/engine-0.2.3-turing/audiocpp_engine.dll", 129_390_080, "c3608613bd54bdd41c85cc90412d4add67b928b07b32be24f26d91cb9626f46d"),
+    CUDART13,
+    CUBLAS13,
+];
+
+#[cfg(not(windows))]
+static VOICE_ENGINE_FILES: &[FileSpec] = &[
+    FileSpec::plain("models/tts-engine/libaudiocpp_engine.so", "https://github.com/timoncool/Higgs-Ultimate/releases/download/engine-0.2.3-turing/libaudiocpp_engine.so", 136_774_464, "dae7b29111acf1e564f9afa541b2a4d360ba2cd6fc60eb4d5b8bdb9c04d722f6"),
+];
+
 /// Сборки transcribe.cpp (видеокарта и процессор) в папках и с файлами Dub Studio: процессорная идёт с моделью,
 /// видеокарточная — отдельным компонентом `asr-gpu`.
 const TCPP_CUDA: FileSpec = tcpp_engine(dub_tcpp::Build::Cuda, "models/transcribe-engine/transcribe_engine.dll");
@@ -240,12 +254,7 @@ static COMPONENTS: &[Component] = &[
             note: "Higgs: читает текст голосом из пака",
             requirement: Requirement::Recommended,
             variant_of: "",
-            files: &[
-                FileSpec::plain("models/tts-engine/audiocpp_engine.dll", "https://github.com/timoncool/Higgs-Ultimate/releases/download/engine-0.2.3-turing/audiocpp_engine.dll", 129_390_080, "c3608613bd54bdd41c85cc90412d4add67b928b07b32be24f26d91cb9626f46d"),
-                // the engine imports cublas64_13.dll, which loads cudart64_13 and cublasLt64_13: without them beside it Windows refuses the DLL
-                CUDART13,
-                CUBLAS13,
-            ],
+            files: VOICE_ENGINE_FILES,
         },
         Component {
             id: "voice-model",
@@ -1239,11 +1248,20 @@ mod tests {
             assert!(files.iter().any(|f| std::path::Path::new(f.path) == dub_tcpp::model_path(models, model) && f.sha256 == model.download.sha256), "{id}");
             let engine = |build: dub_tcpp::Build| dub_tcpp::engine_dir(models, build).join(dub_tcpp::LIBRARY);
             let has = |files: &[super::FileSpec], build: dub_tcpp::Build| files.iter().any(|f| std::path::Path::new(f.path) == engine(build) && f.extract == Extract::None && f.sha256 == build.download().sha256);
+            #[cfg(windows)]
             assert!(has(files, dub_tcpp::Build::Cpu) && !has(files, dub_tcpp::Build::Cuda), "{id}: the processor build comes with the model, the card's apart");
+            // Linux builds have no transcribe.cpp engine in the in-app manifest: the
+            // launcher installs the platform's engine separately from its own pinned URLs.
+            #[cfg(not(windows))]
+            assert!(!has(files, dub_tcpp::Build::Cpu) && !has(files, dub_tcpp::Build::Cuda), "{id}: no Windows engine in the Linux manifest");
             assert!(files.iter().all(|f| !f.url.contains("onnx") && !f.url.contains("nvidia")), "{id}");
         }
         let gpu = COMPONENTS.iter().find(|c| c.id == "asr-gpu").unwrap();
-        assert!(gpu.files.iter().any(|f| std::path::Path::new(f.path) == dub_tcpp::engine_dir(models, dub_tcpp::Build::Cuda).join(dub_tcpp::LIBRARY)));
+        #[cfg(windows)]
+        let gpu_engine = dub_tcpp::engine_dir(models, dub_tcpp::Build::Cuda).join(dub_tcpp::LIBRARY);
+        #[cfg(not(windows))]
+        let gpu_engine = dub_tcpp::engine_dir(models, dub_tcpp::Build::Cuda).join("transcribe_engine.dll");
+        assert!(gpu.files.iter().any(|f| std::path::Path::new(f.path) == gpu_engine));
         assert!(gpu.files.iter().any(|f| f.marker.ends_with("cublas64_13.dll")) && gpu.files.iter().any(|f| f.marker.ends_with("cudart64_13.dll")));
     }
 
