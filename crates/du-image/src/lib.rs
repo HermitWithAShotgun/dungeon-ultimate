@@ -1,8 +1,8 @@
 //! Генерация картинок на движке [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp).
 //!
-//! Библиотека подключается ДИНАМИЧЕСКИ (`stable-diffusion.dll` рядом с `ggml-cuda.dll`),
-//! как `audiocpp_engine.dll` в Dub Studio: cmake и CUDA-тулчейн в нашей сборке не нужны,
-//! а версию движка можно менять, не пересобирая приложение.
+//! Библиотека подключается ДИНАМИЧЕСКИ (`stable-diffusion.dll` / `libstable-diffusion.so`
+//! рядом с бэкендом ggml), как `audiocpp_engine.dll` в Dub Studio: cmake и CUDA-тулчейн
+//! в нашей сборке не нужны, а версию движка можно менять, не пересобирая приложение.
 //!
 //! Модель одна — Krea-2 Turbo: она же рисует сцену с нуля, она же редактирует предыдущий
 //! кадр по референсу (пресеты `krea2_ostris_edit` / `krea2_edit` плюс edit-LoRA), поэтому
@@ -20,6 +20,17 @@ use ffi::*;
 /// Коммит движка, под который написан слой FFI. Раскладка структур обязана совпадать,
 /// поэтому на старте фактический коммит сверяется и расхождение попадает в лог.
 pub const PINNED_COMMIT: &str = "1b0ba10";
+
+/// Имена динамических библиотек движка. На Windows upstream кладёт `stable-diffusion.dll`
+/// рядом с `ggml.dll`; на Linux те же самые библиотеки называются `lib*.so`.
+#[cfg(windows)]
+pub const ENGINE_LIB: &str = "stable-diffusion.dll";
+#[cfg(not(windows))]
+pub const ENGINE_LIB: &str = "libstable-diffusion.so";
+#[cfg(windows)]
+pub const GGML_LIB: &str = "ggml.dll";
+#[cfg(not(windows))]
+pub const GGML_LIB: &str = "libggml.so";
 
 #[derive(Debug, thiserror::Error)]
 pub enum ImageError {
@@ -202,10 +213,10 @@ pub struct Engine {
 }
 
 impl Engine {
-    /// Загрузить движок. `dir` — каталог с `stable-diffusion.dll` и её зависимостями
-    /// (`ggml-cuda.dll` и прочими); они грузятся оттуда же.
+    /// Загрузить движок. `dir` — каталог с библиотекой движка и её зависимостями
+    /// (`ggml-cuda.dll` / `libggml-cuda.so` и прочими); они грузятся оттуда же.
     pub fn load(dir: &Path) -> Result<Self, ImageError> {
-        let dll = dir.join("stable-diffusion.dll");
+        let dll = dir.join(ENGINE_LIB);
         if !dll.is_file() {
             return Err(ImageError::LibraryMissing(dll));
         }
@@ -217,7 +228,7 @@ impl Engine {
         // Бэкенды ggml (CUDA, CPU) подключаются динамически и по умолчанию ищутся рядом с
         // EXE процесса. У нас движок лежит отдельным каталогом, поэтому регистрируем их
         // явно оттуда — иначе в процессе не будет видно ни одного устройства.
-        let ggml = unsafe { load_library(&dir.join("ggml.dll"))? };
+        let ggml = unsafe { load_library(&dir.join(GGML_LIB))? };
         unsafe {
             let load_all: unsafe extern "C" fn(*const c_char) =
                 *ggml.get(b"ggml_backend_load_all_from_path\0")?;
@@ -461,8 +472,10 @@ fn path_to_cstring(path: &Path) -> Result<CString, ImageError> {
     CString::new(text.clone()).map_err(|_| ImageError::BadPath(text))
 }
 
-/// Добавить каталог движка в начало PATH процесса, чтобы зависимости бэкендов
-/// находились. Идемпотентно: повторная загрузка движка не раздувает переменную.
+/// Добавить каталог движка в путь поиска зависимостей процесса, чтобы бэкенды
+/// (`ggml-cuda.dll` / `libggml-cuda.so`) находились. Идемпотентно: повторная
+/// загрузка движка не раздувает переменную.
+#[cfg(windows)]
 fn augment_search_path(dir: &Path) {
     let dir = dir.to_string_lossy();
     // Канонизированный путь приходит с префиксом `\\?\`, который загрузчик в PATH не понимает.
@@ -472,6 +485,19 @@ fn augment_search_path(dir: &Path) {
         return;
     }
     std::env::set_var("PATH", format!("{dir};{current}"));
+}
+
+/// На Linux динамический загрузчик ищет зависимости по `LD_LIBRARY_PATH`.
+/// Сами библиотеки мы открываем по абсолютному пути, но бэкенды ggml подгружает
+/// уже свой код по имени — без этого каталога CUDA может не увидиться.
+#[cfg(not(windows))]
+fn augment_search_path(dir: &Path) {
+    let dir = dir.to_string_lossy();
+    let current = std::env::var("LD_LIBRARY_PATH").unwrap_or_default();
+    if current.split(':').any(|entry| entry == dir) {
+        return;
+    }
+    std::env::set_var("LD_LIBRARY_PATH", format!("{dir}:{current}"));
 }
 
 /// На Windows зависимости (`ggml-cuda.dll` и прочие) обязаны искаться РЯДОМ с самой
@@ -506,7 +532,7 @@ mod tests {
     #[test]
     fn engine_loads_and_reports_a_cuda_device() {
         let dir = runtime_dir();
-        if !dir.join("stable-diffusion.dll").is_file() {
+        if !dir.join(ENGINE_LIB).is_file() {
             eprintln!("движок не разложен в {dir:?} — проверка пропущена");
             return;
         }

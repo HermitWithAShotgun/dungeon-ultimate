@@ -8,6 +8,14 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DATA_DIR="${DU_ROOT:-$(dirname "$ROOT_DIR")/data}"
 PORT="${DU_PORT:-8795}"
 PIDFILE="$DATA_DIR/du-server.pid"
+SD_DIR="$DATA_DIR/models/runtime/sd"
+
+# sd.cpp loads its ggml backends by name; make the engine directory visible to
+# the dynamic loader before the process starts (changing LD_LIBRARY_PATH later
+# would not affect dlopen on modern glibc).
+if [[ -d "$SD_DIR" ]]; then
+  export LD_LIBRARY_PATH="$SD_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
 
 command -v setsid >/dev/null 2>&1 || { echo "Error: 'setsid' (util-linux) is required" >&2; exit 1; }
 mkdir -p "$DATA_DIR"
