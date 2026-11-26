@@ -8,14 +8,11 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DATA_DIR="${DU_ROOT:-$(dirname "$ROOT_DIR")/data}"
 PORT="${DU_PORT:-8795}"
 PIDFILE="$DATA_DIR/du-server.pid"
-SD_DIR="$DATA_DIR/models/runtime/sd"
-
-# sd.cpp loads its ggml backends by name; make the engine directory visible to
-# the dynamic loader before the process starts (changing LD_LIBRARY_PATH later
-# would not affect dlopen on modern glibc).
-if [[ -d "$SD_DIR" ]]; then
-  export LD_LIBRARY_PATH="$SD_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-fi
+# Do NOT prepend the sd.cpp directory to LD_LIBRARY_PATH here: llama.cpp and
+# sd.cpp ship different, incompatible libggml versions. sd.cpp's libraries have
+# RPATH=$ORIGIN and du-image loads its backends by absolute path, so the image
+# engine finds its own CUDA dependencies without polluting child processes.
+# llama-server keeps resolving its own $ORIGIN libs on the first text turn.
 
 command -v setsid >/dev/null 2>&1 || { echo "Error: 'setsid' (util-linux) is required" >&2; exit 1; }
 mkdir -p "$DATA_DIR"

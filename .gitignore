@@ -26,6 +26,9 @@ cuda_version.txt
 /temp/
 /downloads/
 
+# Локальный клона / сборка sd.cpp для Linux-порта
+/.cache/
+
 # Результаты / сгенерированные изображения
 /output/
 /generated/

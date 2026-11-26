@@ -9,10 +9,26 @@ DU_ROOT="${DU_ROOT:-$(dirname "$ROOT_DIR")/data}"
 OUT_DIR="$DU_ROOT/models/runtime/sd"
 CACHE_DIR="${DU_DOWNLOAD_CACHE:-$ROOT_DIR/.cache}"
 SRC_DIR="$CACHE_DIR/sdcpp"
+LLAMA_DIR="$DU_ROOT/tools/llama"
 REV="master-956-1b0ba10"
 COMMIT="1b0ba10893f4e2e0656103011fc1c4645a02a734"
 
-if [[ -f "$OUT_DIR/libstable-diffusion.so" ]]; then
+mkdir -p "$OUT_DIR"
+# sd.cpp does not ship the CUDA runtime on Linux. Reuse the pinned llama.cpp
+# CUDA 12.8 bundle already installed by install-narrator-linux.sh so the image
+# engine is self-contained and works without an activated conda environment.
+for lib in libcudart.so.12 libcublas.so.12 libcublasLt.so.12; do
+  if [[ -f "$LLAMA_DIR/$lib" && ! -f "$OUT_DIR/$lib" ]]; then
+    cp -a "$LLAMA_DIR/$lib" "$OUT_DIR"/
+  fi
+done
+
+engine_complete() {
+  [[ -f "$OUT_DIR/libstable-diffusion.so" ]] &&
+    [[ -f "$OUT_DIR/libggml.so" ]] &&
+    [[ -f "$OUT_DIR/libggml-cuda.so" ]]
+}
+if engine_complete; then
   echo "==> Engine already present: $OUT_DIR/libstable-diffusion.so"
   exit 0
 fi
@@ -33,11 +49,14 @@ for attempt in 1 2 3 4 5; do
 done
 
 echo "==> Configuring CUDA build (sm_80..120, flash attention for all quants)"
-rm -rf build && mkdir build && cd build
+# Keep an existing build tree: a dropped connection mid-build should resume, not
+# delete hours of compiled CUDA objects on the next attempt.
+mkdir -p build && cd build
 # The Pinokio/conda env injects -O2 via CFLAGS; clear it so vendored C code builds cleanly.
 CLEAN() { env -u CC -u CXX -u CFLAGS -u CXXFLAGS -u CPPFLAGS -u LDFLAGS -u CPATH -u C_INCLUDE_PATH "$@"; }
 CLEAN cmake .. \
   -DSD_BUILD_SHARED_LIBS=ON \
+  -DSD_BUILD_EXAMPLES=OFF \
   -DSD_CUDA=ON \
   -DSD_BUILD_SHARED_GGML_LIB=ON \
   -DGGML_BACKEND_DL=ON \
@@ -52,7 +71,12 @@ CLEAN cmake .. \
 echo "==> Compiling (this takes a while)"
 CLEAN cmake --build . --config Release -j"$(nproc)"
 
-mkdir -p "$OUT_DIR"
 cp -a bin/. "$OUT_DIR"/
+if ! engine_complete; then
+  echo "Error: build finished but the CUDA engine libraries are missing in $OUT_DIR" >&2
+  exit 1
+fi
+
 echo "==> Installed engine into $OUT_DIR"
-"$OUT_DIR/sd-server" --help 2>&1 | head -2 || true
+# Only the shared libraries are needed by du-image's FFI layer. The sd CLI/server
+# examples are disabled because the conda toolchain cannot find libgomp at link time.

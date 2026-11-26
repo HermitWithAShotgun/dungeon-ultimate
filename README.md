@@ -18,6 +18,14 @@
 
 </div>
 
+> **Linux port (`linux-port` branch):** this fork adds a native headless Linux
+> server (`du-server`) with the local narrator and local image generation. It is
+> **NVIDIA-only** and requires the CUDA 12.8 runtime: the pinned llama.cpp binary
+> and the stable-diffusion.cpp engine are both CUDA builds. AMD/ROCm, Vulkan, and
+> CPU image generation are not supported in this port. Cloud stages still work on
+> a machine without an NVIDIA GPU; see [`LINUX.md`](LINUX.md) for the exact
+> status and install scripts.
+
 ## Overview
 
 **Dungeon Ultimate** is a fully on-device AI roleplay engine — a tireless dungeon master that writes your story, runs real tabletop rules, rolls physics dice, illustrates the scene and reads it aloud. Everything can happen on your own NVIDIA GPU: no accounts, no content filters, and nothing leaves your PC. A cloud mode is there if you want it — every stage of a turn can run through OpenRouter instead, so a machine without a GPU plays the same game.
@@ -32,7 +40,7 @@ It is a heavily extended fork of [open-dungeon](https://github.com/newideas99/op
 - **There are real rules.** A deterministic D&D 5e engine resolves checks, combat and damage with a CSPRNG — the narrator declares the action, the engine decides the outcome, so the AI can't cheat.
 - **The dice are real.** A genuine 3D physics die tumbles across the scene (three.js + cannon-es) and is forced to land on exactly the number the engine already rolled.
 - **It's uncensored.** A local, unfiltered text model plus a local image pipeline with an abliterated text encoder mean unrestricted, adult storytelling and art — entirely your call and entirely private.
-- **It also runs with no GPU at all.** Every stage of a turn — narration, illustration, narration audio, speech input — can be switched to the cloud independently, so a laptop can play the same game.
+- **It also runs with no GPU at all.** Every stage of a turn — narration, illustration, narration audio, speech input — can be switched to the cloud independently, so a laptop can play the same game. On the Linux port this means the cloud path; local image generation is NVIDIA/CUDA-only.
 
 ## Features
 

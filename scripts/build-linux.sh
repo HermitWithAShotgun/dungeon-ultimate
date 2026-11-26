@@ -5,6 +5,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Pinokio's shell does not always put rustup's bin directory on PATH.
+if ! command -v cargo >/dev/null 2>&1 && [[ -x "$HOME/.cargo/bin/cargo" ]]; then
+  export PATH="$HOME/.cargo/bin:$PATH"
+fi
 if ! command -v cargo >/dev/null 2>&1; then
   echo "Error: cargo not found. Install Rust via https://rustup.rs" >&2
   exit 1

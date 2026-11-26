@@ -1,8 +1,12 @@
-# Linux port (work in progress)
+# Linux port (NVIDIA/CUDA only)
 
 This branch tracks the native Linux port of Dungeon Ultimate. The Windows Tauri
 desktop shell is intentionally not used: the Rust `du-server` binary serves the
 same React UI and the complete REST/SSE + MCP API on loopback.
+
+**Hardware support:** the local narrator and local image engines are built for
+NVIDIA CUDA 12.8 only. AMD/ROCm, Vulkan, and CPU image generation are not
+supported by this port. Cloud stages work independently of the GPU.
 
 ## Status
 
@@ -12,13 +16,17 @@ same React UI and the complete REST/SSE + MCP API on loopback.
 - [x] End-to-end turn verified against an external OpenAI-compatible server
   (`http://192.168.1.94:8888/v1`, model `Qwen3.8-Flash-Next`): streamed prose,
   tool calls, characters created, and an image request all completed.
-- [ ] Local GPU engines (llama.cpp, stable-diffusion.cpp, Higgs TTS, transcribe.cpp) still use Windows binaries from the upstream download manifest.
+- [x] Local narrator: pinned llama.cpp b11557 Ubuntu CUDA 12.8 + Gemma 4 12B uncensored GGUF, started lazily by `du-server`.
+- [x] Local image weights downloaded and SHA-256 verified (Krea-2 Turbo, Qwen3-VL-4B, Wan VAE, identity-edit LoRA).
+- [x] Local stable-diffusion.cpp CUDA engine build and verified image turn (~17 s for a 1024×768 fast frame on an RTX 5090 Laptop).
+- [ ] Higgs TTS and transcribe.cpp remain Windows-only upstream (cloud TTS / no ASR is the workaround).
+- [x] Pinokio launcher at `PINOKIO_HOME/api/dungeon-ultimate-linux` (Install / Start / Update / Reset).
 - [ ] Tauri Linux desktop shell (optional; browser UI works).
 
 ## Requirements
 
 - Rust (rustup stable), Node.js 22+ with npm.
-- For full local GPU mode later: NVIDIA driver + CUDA 12.8 toolkit, cmake.
+- NVIDIA driver + CUDA 12.8 toolkit (provided by the Pinokio environment) and cmake.
 - No sudo needed for the headless build.
 
 ## Build and run
@@ -126,11 +134,66 @@ To use it in a story, choose **Local** as the text provider (or keep `custom`
 and point `customBaseUrl` at the spawned server). The local path needs no
 OpenRouter key and no LAN endpoint.
 
+## Local image generation (offline)
+
+```bash
+./scripts/install-image-linux.sh   # pinned sd.cpp CUDA engine + Krea-2 Turbo weights
+./scripts/run-linux.sh             # starts du-server; sd.cpp loads on first image
+./scripts/stop-linux.sh            # stops du-server and its model children
+```
+
+The upstream release for the pinned sd.cpp commit has no Linux CUDA binary, so
+`build-image-linux.sh` builds the exact pinned commit (`1b0ba10`) from source
+with `SD_CUDA=ON`, dynamic ggml backends, and sm_80–120 kernels. It installs
+`libstable-diffusion.so`, `libggml.so`, `libggml-cuda.so`, and the CUDA runtime
+libraries reused from the narrator bundle into `DU_ROOT/models/runtime/sd/`.
+The libraries are built with `RPATH=$ORIGIN`, and `du-image` registers backends
+from that same directory by absolute path, so no global `LD_LIBRARY_PATH` is
+needed. This matters: llama.cpp b11557 ships ggml 0.26 while the pinned sd.cpp
+ships ggml 0.25, and prepending the image directory to `LD_LIBRARY_PATH` would
+make `llama-server` load the wrong ggml and fail to find any CUDA backend.
+
+Weights are pinned by SHA-256 and resume after network drops:
+
+- `krea2-turbo-Q4_K_M.gguf` (diffusion model)
+- `qwen3-vl-4b-abliterated-Q4_K_M.gguf` (conditioning encoder)
+- `wan_2.1_vae.safetensors` (VAE)
+- `krea2-identity-edit-r128.safetensors` (identity-edit LoRA)
+
+`du-server` releases the narrator from VRAM before `generate_image` loads the
+image weights, then drops the sd.cpp context immediately after rendering so the
+next narration turn can use the card (`gpu.rs:233-262`).
+
+Verified sequence: local story turn starts `llama-server` (~8.8 GB VRAM), an
+image request stops it and renders a PNG (~17 s), and the following story turn
+starts a fresh `llama-server` and streams prose with no errors. The two engines
+ship incompatible ggml versions (llama.cpp 0.26 vs. sd.cpp 0.25), so neither the
+launcher nor the FFI may put the sd.cpp directory into `LD_LIBRARY_PATH`; the
+sd.cpp libraries use `RPATH=$ORIGIN` and backends load from absolute paths.
+
+## Pinokio launcher
+
+The launcher lives beside the `app/` and `data/` folders at
+`PINOKIO_HOME/api/dungeon-ultimate-linux`:
+
+- `install.js` — declares the `ai` bundle, then runs the three Linux installers.
+- `start.js` — daemonized; asks Pinokio for a free loopback port, starts
+  `scripts/run-linux.sh`, captures the printed URL, and sets the `url` local so
+  the menu shows **Open Web UI**.
+- `update.js` / `reset.js` — pull and rebuild, or remove build outputs and
+  downloaded models while keeping chats.
+- `pinokio.js` / `pinokio.json` — dynamic menu and metadata; platform is declared
+  as Linux-only.
+
+Stopping the script from Pinokio terminates the shell and the process group, so
+`llama-server` and any image engine child go down with the app.
+
 ## Next steps
 
 1. ~~Linux llama.cpp CUDA binary for the bundled narrator~~ done via the pinned
    b11557 Ubuntu CUDA 12.8 release and `install-narrator-linux.sh`.
-2. Linux stable-diffusion.cpp `.so` plus platform-aware FFI names (`du-image`).
+2. ~~Linux stable-diffusion.cpp `.so` plus platform-aware FFI names (`du-image`).~~
+   Done; CUDA engine loads through FFI and a real `/api/images` turn renders a PNG.
 3. Linux speech-to-text (transcribe.cpp or a faster-whisper shim).
 4. Local narration audio remains blocked upstream: the Higgs engine is only
    published as a Windows DLL (`setup.rs:244`). Cloud TTS is the workaround.

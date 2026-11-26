@@ -487,18 +487,12 @@ fn augment_search_path(dir: &Path) {
     std::env::set_var("PATH", format!("{dir};{current}"));
 }
 
-/// На Linux динамический загрузчик ищет зависимости по `LD_LIBRARY_PATH`.
-/// Сами библиотеки мы открываем по абсолютному пути, но бэкенды ggml подгружает
-/// уже свой код по имени — без этого каталога CUDA может не увидиться.
+/// На Linux каталог движка НЕ добавляем в `LD_LIBRARY_PATH`: он наследуется
+/// дочерними процессами, а llama.cpp и sd.cpp поставляют несовместимые версии
+/// libggml. Библиотеки sd.cpp собраны с `RPATH=$ORIGIN`, бэкенды загружаются
+/// абсолютными путями, поэтому менять окружение процесса не нужно.
 #[cfg(not(windows))]
-fn augment_search_path(dir: &Path) {
-    let dir = dir.to_string_lossy();
-    let current = std::env::var("LD_LIBRARY_PATH").unwrap_or_default();
-    if current.split(':').any(|entry| entry == dir) {
-        return;
-    }
-    std::env::set_var("LD_LIBRARY_PATH", format!("{dir}:{current}"));
-}
+fn augment_search_path(_dir: &Path) {}
 
 /// На Windows зависимости (`ggml-cuda.dll` и прочие) обязаны искаться РЯДОМ с самой
 /// библиотекой, а не в каталоге процесса, — иначе загрузка падает на первой же зависимости.
