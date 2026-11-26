@@ -69,11 +69,28 @@ if verified "$TARGET" "$MODEL_SHA"; then
   echo "==> Narrator model already present: $TARGET"
 else
   echo "==> Downloading narrator GGUF (~7.4 GB): $MODEL_FILE"
-  # The default Xet backend can fail with transient CDN reconstruction errors;
-  # classic HTTP downloads are slower but reliable and still checksum-verified.
-  HF_HUB_DISABLE_XET=1 hf download "$MODEL_REPO" "$MODEL_FILE" \
-    --revision "$MODEL_REV" --local-dir "$MODEL_DIR"
-  verified "$SOURCE" "$MODEL_SHA" || { echo "Error: checksum mismatch for $MODEL_FILE" >&2; exit 1; }
+  # Use the classic HTTP backend: the default Xet backend can fail with transient
+  # CDN reconstruction errors. Retry so a dropped connection resumes the partial
+  # file instead of losing progress. Every attempt is checksum-verified at the end.
+  if [[ -n "${HF_TOKEN_PATH:-}" && -s "$HF_TOKEN_PATH" ]]; then
+    export HF_TOKEN="$(cat "$HF_TOKEN_PATH")"
+  fi
+  ATTEMPT=1
+  MAX_ATTEMPTS="${DU_MODEL_MAX_ATTEMPTS:-10}"
+  until verified "$SOURCE" "$MODEL_SHA"; do
+    if (( ATTEMPT > MAX_ATTEMPTS )); then
+      echo "Error: could not download/verify $MODEL_FILE after $MAX_ATTEMPTS attempts" >&2
+      exit 1
+    fi
+    echo "==> Download attempt $ATTEMPT/$MAX_ATTEMPTS"
+    HF_HUB_DISABLE_XET=1 hf download "$MODEL_REPO" "$MODEL_FILE" \
+      --revision "$MODEL_REV" --local-dir "$MODEL_DIR" || true
+    ATTEMPT=$((ATTEMPT + 1))
+    if ! verified "$SOURCE" "$MODEL_SHA"; then
+      echo "==> Download incomplete/failed; retrying in 15s"
+      sleep 15
+    fi
+  done
   ln -sfn "$MODEL_FILE" "$TARGET"
 fi
 
