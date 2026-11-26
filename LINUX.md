@@ -9,6 +9,9 @@ same React UI and the complete REST/SSE + MCP API on loopback.
 - [x] Headless `du-server` builds and runs on Ubuntu (Rust 1.100, Node 24).
 - [x] Frontend builds with `npm ci && npm run build`.
 - [x] `/api/health` returns `ok: true`; UI served at `http://127.0.0.1:8795`.
+- [x] End-to-end turn verified against an external OpenAI-compatible server
+  (`http://192.168.1.94:8888/v1`, model `Qwen3.8-Flash-Next`): streamed prose,
+  tool calls, characters created, and an image request all completed.
 - [ ] Local GPU engines (llama.cpp, stable-diffusion.cpp, Higgs TTS, transcribe.cpp) still use Windows binaries from the upstream download manifest.
 - [ ] Tauri Linux desktop shell (optional; browser UI works).
 
@@ -48,8 +51,54 @@ vLLM, Ollama, Unsloth). In the story settings choose **Local server** and set
 fixed upstream in v0.13.4 (issue #7). Image narration audio can be switched to
 OpenRouter in `DU_ROOT/models/runtime.json`, or disabled.
 
-The app downloads its model weights itself from the **What to download** panel;
-no manual model files are required.
+### Verified custom-endpoint configuration
+
+Create a chat with these settings (the server reads them from the chat row, so
+the `/api/story` body only needs `chatId` and `input`):
+
+```json
+{
+  "textProvider": "custom",
+  "customBaseUrl": "http://192.168.1.94:8888/v1",
+  "customModel": "Qwen3.8-Flash-Next",
+  "language": "en",
+  "imageGenerationEnabled": false,
+  "autoImages": false,
+  "autoplay": false
+}
+```
+
+The narrator then uses the external server for **all** passes in a turn: prose
+streaming, the JSON-schema structured passes (game mechanics, tool calls, image
+request), and follow-up assists such as `/api/actions` and `/api/suggest`. The
+endpoint must accept `response_format.type =
+"json_schema"` with `strict: true` — `Qwen3.8-Flash-Next` does, using its exact
+grammar mode. Reasoning is returned as `reasoning_content`, so the visible
+`content` stays clean JSON; structured sampling allows 3072 tokens, which is
+ample.
+
+### The bundled uncensored model
+
+Upstream's own narrator model is **Gemma 4 12B IT uncensored, Q4_K_M**:
+`zaakirio/gemma-4-12b-it-uncensored-GGUF` → `gemma-4-12b-it-uncensored-Q4_K_M.gguf`
+(7.38 GB, SHA-256 `b2e1db5f81b9f0ce489f99fd448bbf4ea8ea719e8d28c05aaa5774afc5def76c`).
+`du-server` expects it at `DU_ROOT/models/text/narrator.gguf` and launches the
+bundled `llama-server` on a free loopback port with `-ngl`, `-c`, `--flash-attn
+on`, `--parallel 1`, and `--jinja` (`crates/du-llm/src/server.rs:98-129`).
+
+It can be used on Linux in two ways:
+
+1. **Already possible today:** run any Linux `llama-server` with that GGUF and
+   point the chat's `customBaseUrl` at it (including `http://127.0.0.1:8080/v1`,
+   which is the frontend's static fallback model path). No code change needed.
+2. **Proper port (Phase 2):** build llama.cpp b11557 for Linux CUDA and place
+   `llama-server` in `DU_ROOT/tools/llama/`, or set `DU_LLAMA_BIN`. The resolver
+   already looks for the extension-less name off Windows. Then choose
+   `textProvider: "local"` and let `du-server` own the model, GPU slot, and
+   cleanup.
+
+The app downloads the GGUF itself from the **What to download** panel; no
+manual model files are required.
 
 ## Next steps
 
