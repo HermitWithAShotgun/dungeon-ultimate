@@ -69,7 +69,10 @@ if verified "$TARGET" "$MODEL_SHA"; then
   echo "==> Narrator model already present: $TARGET"
 else
   echo "==> Downloading narrator GGUF (~7.4 GB): $MODEL_FILE"
-  hf download "$MODEL_REPO" "$MODEL_FILE" --revision "$MODEL_REV" --local-dir "$MODEL_DIR"
+  # The default Xet backend can fail with transient CDN reconstruction errors;
+  # classic HTTP downloads are slower but reliable and still checksum-verified.
+  HF_HUB_DISABLE_XET=1 hf download "$MODEL_REPO" "$MODEL_FILE" \
+    --revision "$MODEL_REV" --local-dir "$MODEL_DIR"
   verified "$SOURCE" "$MODEL_SHA" || { echo "Error: checksum mismatch for $MODEL_FILE" >&2; exit 1; }
   ln -sfn "$MODEL_FILE" "$TARGET"
 fi
