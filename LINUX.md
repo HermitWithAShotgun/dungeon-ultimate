@@ -35,7 +35,7 @@ its jitterentropy source with `-O0`, and an inherited `-O2` makes it fail.
 
 Environment variables:
 
-- `DU_ROOT` — data/models/tools directory (default: repo `data/`).
+- `DU_ROOT` — data/models/tools directory (default: `dungeon-ultimate-linux/data`, beside the repo).
 - `DU_PORT` — HTTP port (default: `8795`).
 
 The server binds only to `127.0.0.1`, and its Host/Origin guard accepts only
@@ -109,7 +109,8 @@ manual model files are required.
 ```
 
 The installer verifies every download by SHA-256 and installs into `DU_ROOT`
-(default: repo `data/`). The narrated model is **not running all the time**:
+(default: `dungeon-ultimate-linux/data`, beside the repo). The narrated model is
+**not running all the time**:
 
 - `du-server` starts `llama-server` lazily on the first text request
   (`gpu.rs:137-169`) and holds it only for the session.

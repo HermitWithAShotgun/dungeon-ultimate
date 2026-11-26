@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-DATA_DIR="${DU_ROOT:-$ROOT_DIR/data}"
+DATA_DIR="${DU_ROOT:-$(dirname "$ROOT_DIR")/data}"
 PIDFILE="$DATA_DIR/du-server.pid"
 
 if [[ ! -f "$PIDFILE" ]]; then

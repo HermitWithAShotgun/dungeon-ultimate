@@ -4,7 +4,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-DU_ROOT="${DU_ROOT:-$ROOT_DIR/data}"
+DU_ROOT="${DU_ROOT:-$(dirname "$ROOT_DIR")/data}"
 TOOLS_DIR="$DU_ROOT/tools/llama"
 MODEL_DIR="$DU_ROOT/models/text"
 CACHE_DIR="${DU_DOWNLOAD_CACHE:-$ROOT_DIR/.cache/llama}"
