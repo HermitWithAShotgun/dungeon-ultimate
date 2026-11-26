@@ -1,5 +1,7 @@
 <div align="center">
 
+This fork is an attempt to port Dungeon Ultimate to Linux. Do NOT use yet, under heavy vibecoding development. 
+
 # Dungeon Ultimate
 
 **An offline AI dungeon master with real 3D dice, full D&D mechanics, uncensored on-device image generation and voice input — your adventures never leave your machine.**
