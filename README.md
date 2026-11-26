@@ -18,13 +18,16 @@
 
 </div>
 
-> **Linux port (`linux-port` branch):** this fork adds a native headless Linux
-> server (`du-server`) with the local narrator and local image generation. It is
-> **NVIDIA-only** and requires the CUDA 12.8 runtime: the pinned llama.cpp binary
-> and the stable-diffusion.cpp engine are both CUDA builds. AMD/ROCm, Vulkan, and
-> CPU image generation are not supported in this port. Cloud stages still work on
-> a machine without an NVIDIA GPU; see [`LINUX.md`](LINUX.md) for the exact
-> status and install scripts.
+> **Linux port (`linux-port` branch, v0.1):** this fork adds a native headless Linux
+> server (`du-server`) with a local Gemma 4 12B uncensored narrator, pinned Krea-2
+> Turbo image generation and local Higgs narration audio. It is **NVIDIA/CUDA-only**;
+> AMD/ROCm, Vulkan and CPU image generation are not supported. Local Whisper/Parakeet
+> speech input is unavailable on Linux because upstream ships Windows binaries only —
+> the microphone requires opt-in cloud ASR. Heavy engines hand off the GPU one at a
+> time (text → voice → image), so ~24 GB VRAM and ~40 GB disk are recommended.
+> Cloud stages still work without an NVIDIA GPU. One-click Pinokio launcher:
+> [dungeon-ultimate-linux-pinokio](https://github.com/HermitWithAShotgun/dungeon-ultimate-linux-pinokio).
+> See [`LINUX.md`](LINUX.md) for exact pins, installers and remaining limitations.
 
 ## Overview
 
