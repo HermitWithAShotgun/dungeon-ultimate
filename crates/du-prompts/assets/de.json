@@ -44,7 +44,11 @@
     "equipped": "angelegt",
     "damage": "Schaden",
     "conditions": "Zustände",
-    "effects": "Effekte"
+    "effects": "Effekte",
+    "quests": "ANGENOMMENE AUFGABEN",
+    "questConditions": "Bedingungen",
+    "noActors": "• (keine Spielercharaktere)",
+    "stateHeader": "SPIELZUSTAND (autoritativ — verlasse dich darauf, erfinde KEINE Zahlen):"
   },
   "suggest": {
     "system": "Du bist ein Ideengenerator für ein privates Rollenspiel. Antworte knapp, nur mit dem angeforderten Text, ohne Einleitungen, Erklärungen und Anführungszeichen.",
@@ -56,7 +60,10 @@
     }
   },
   "actions": {
-    "system": "Du bist ein Generator für Schnellaktionen eines Text-Rollenspiels (D&D). Analysiere, kommentiere und erzähle den Text NICHT nach. Lies die letzte Szene und schlage GENAU 3–4 kurze, konkrete und VERSCHIEDENE Aktionen vor, die der Spieler-Held jetzt sofort ausführen kann (im Imperativ, 3–6 Wörter). Jede — in einer eigenen Zeile STRENG im Format: Emoji | Aktion. Keine Überschriften, Nummerierung, Erklärungen, keine Analyse — NUR 3–4 solche Zeilen.\n\nBeispiel für das Format:\n⚔️ | Die nächste Kreatur angreifen\n🛡️ | Decken und zur Wand zurückweichen\n👁️ | Den dunklen Gang untersuchen\n🗣️ | Schreien, um sie zu verscheuchen"
+    "system": "Du erzeugst schnelle Aktionen für ein Text-Rollenspiel (D&D). Analysiere, kommentiere oder wiederhole den Abschnitt NICHT. Lies die letzte Szene und schlage GENAU 3–4 kurze, konkrete und UNTERSCHIEDLICHE Aktionen vor, die der Held jetzt ausführen kann (Imperativ, 3–6 Wörter). Antworte nur mit einem JSON-Objekt: {\"actions\":[{\"emoji\":\"...\",\"label\":\"...\"}]}. Das Emoji steht nur im Feld emoji; label enthält nur Wörter, ohne Symbole. Keine Prosa, Nummerierung oder Erklärungen.",
+    "emojiHint": "genau ein Emoji",
+    "labelHint": "die Aktion in Worten, Imperativ, 3-6 Wörter, ohne Emojis",
+    "reminder": "{passage}\n\nAntworte nur mit dem JSON-Objekt. emoji = ein Emoji; label = die Aktion in Worten."
   },
   "kickoff": "Beginne die Geschichte jetzt sofort. Schreibe einen einleitenden Abschnitt: Etabliere die Szene, die Spielerfigur und die unmittelbare Situation in der zweiten Person und schließe mit einem Moment, der die erste Handlung des Spielers einlädt. Stelle dem Spieler keine Fragen zur Einrichtung; die Geschichte hat bereits begonnen.",
   "continue": "Setze die Geschichte genau dort fort, wo sie unterbrochen wurde. Der Spieler führt in diesem Zug keine Handlung aus — entwickle die Szene natürlich durch Erzählung, Dialog oder Ereignisse weiter und halte dann bei einem Moment inne, der seine nächste Handlung einlädt.",
@@ -152,6 +159,18 @@
         "name": "Verwirrung",
         "note": "Die Gedanken verwirren sich."
       }
-    ]
+    ],
+    "questOffered": "📜 Aufgabe angeboten: {title}{giver}",
+    "questTaken": "📜 Aufgabe angenommen: {title}",
+    "questCompleted": "✅ Aufgabe abgeschlossen: {title}{reward}",
+    "questFailed": "❌ Aufgabe fehlgeschlagen: {title}{reason}",
+    "xpGained": "✨ {name}: +{amount} EP{reason} → {xp}",
+    "levelUp": "🎉 {name} — Stufe {level}! HP: {hp}/{max}",
+    "questGiver": " — von {value}",
+    "questReward": " — Belohnung: {value}",
+    "questReason": " ({value})",
+    "roll": "🎲 {who} · {label}: d20 {d20} {mod} = {total} gegen {dc} → {verdict}",
+    "rollLabel": "Probe",
+    "achievement": "Errungenschaft: „{title}“ — {summary}"
   }
 }

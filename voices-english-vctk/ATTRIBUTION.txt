@@ -1,0 +1,19 @@
+English male reference clips
+=============================
+
+Source: CSTR VCTK Corpus (English Multi-speaker Corpus for CSTR Voice Cloning Toolkit), version 0.92.
+Speakers: p226, p227, p232, p237, p243, p245. The corpus was recorded specifically for voice-cloning research; speakers consented to that use.
+
+License: Open Data Commons Attribution License (ODC-By) v1.0.
+https://opendatacommons.org/licenses/by/1-0/
+
+Citation:
+Christophe Veaux, Junichi Yamagishi, Kirsten MacDonald, "CSTR VCTK Corpus: English
+Multi-speaker Corpus for CSTR Voice Cloning Toolkit", University of Edinburgh, 2019.
+DOI: 10.7488/ds/2645
+
+Changes: source FLAC clips were converted to 16 kHz mono WAV; transcripts are the
+corpus ground truth. No voice/identity transformation was applied to the references.
+
+The Higgs model license separately prohibits non-consensual cloning or impersonation.
+Use these references only for the consented, research/creator purposes allowed by both licenses.

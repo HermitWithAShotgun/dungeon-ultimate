@@ -36,6 +36,7 @@ pub async fn actions(
     // Длинный пассаж режем: модели хватает финала сцены, а лишний контекст только
     // замедляет служебный вызов.
     let passage: String = body.passage.chars().rev().take(4000).collect::<Vec<_>>().into_iter().rev().collect();
+    let prompts = prompts_for(body.language);
     let schema = json!({
         "type": "object",
         "additionalProperties": false,
@@ -48,13 +49,12 @@ pub async fn actions(
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
-                        // Поля описываем явно: набор промптов достался от прежней версии,
-                        // где ответ разбирался строкой «значок | действие», и без пояснения
-                        // модель кладёт значок прямо в подпись, а текста не пишет вовсе.
-                        "emoji": { "type": "string", "description": "ровно один значок", "maxLength": 8 },
+                        // Поля описываем явно и на языке игры: без пояснения модель кладёт
+                        // значок прямо в подпись, а текста не пишет вовсе.
+                        "emoji": { "type": "string", "description": prompts.actions.emoji_hint.clone(), "maxLength": 8 },
                         "label": {
                             "type": "string",
-                            "description": "действие СЛОВАМИ, повелительно, 3-6 слов, без значков",
+                            "description": prompts.actions.label_hint.clone(),
                             "minLength": 8,
                             "maxLength": 60
                         }
@@ -67,13 +67,8 @@ pub async fn actions(
     });
 
     let messages = vec![
-        Message::system(prompts_for(body.language).actions.system.clone()),
-        // Напоминание про поля: в наборе промптов описан строчный формат прежней версии.
-        Message::user(format!(
-            "{passage}
-
-Ответь полями: emoji — один значок, label — само действие словами."
-        )),
+        Message::system(prompts.actions.system.clone()),
+        Message::user(prompts.actions.reminder.replace("{passage}", &passage)),
     ];
     let value = ask_json(&state, messages, &schema).await?;
     let actions = value
@@ -173,18 +168,19 @@ pub async fn story_setup(
         "required": ["name", "persona", "hint"]
     });
     let gender = match body.gender.as_str() {
-        "male" => "мужского пола",
-        "female" => "женского пола",
-        _ => "любого пола",
+        "male" => "male",
+        "female" => "female",
+        _ => "any gender",
     };
     let messages = vec![
         Message::system(format!(
-            "Придумай протагониста {gender} и подсказку первой сцены для истории на языке {}. \
-             Имя короткое, образ — одной фразой, подсказка — одним предложением.",
-            body.language.prompt_name()
+            "Invent a {gender} protagonist and a first-scene hint for a private text \
+             roleplaying game. The name is short, the persona is one phrase, the hint is one \
+             sentence."
         )),
+        Message::system(crate::turn::language_directive(body.language)),
         Message::user(if body.setting.trim().is_empty() {
-            "Сеттинг на твой вкус.".to_string()
+            "Choose a setting you like.".to_string()
         } else {
             body.setting.clone()
         }),

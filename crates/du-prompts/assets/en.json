@@ -44,7 +44,11 @@
     "equipped": "equipped",
     "damage": "damage",
     "conditions": "Conditions",
-    "effects": "Effects"
+    "effects": "Effects",
+    "quests": "TAKEN QUESTS",
+    "questConditions": "conditions",
+    "noActors": "• (no player characters)",
+    "stateHeader": "GAME STATE (authoritative — rely on it, do NOT invent numbers):"
   },
   "suggest": {
     "system": "You are an idea generator for a private roleplaying game. Answer briefly, with only the requested text, no introductions, explanations or quotation marks.",
@@ -56,7 +60,10 @@
     }
   },
   "actions": {
-    "system": "You are a quick-action generator for a text roleplaying game (D&D). Do NOT analyze, do NOT comment on and do NOT retell the text. Read the latest scene and propose EXACTLY 3–4 short, concrete and DIFFERENT actions the player-hero can take right now (imperative, 3–6 words). Each one on its own line STRICTLY in the format: emoji | action. No headings, numbering, explanations or analysis — ONLY 3–4 such lines.\n\nExample format:\n⚔️ | Attack the nearest creature\n🛡️ | Guard up and fall back to the wall\n👁️ | Inspect the dark passage\n🗣️ | Shout to scare them off"
+    "system": "You are a quick-action generator for a text roleplaying game (D&D). Do NOT analyze, comment on or retell the passage. Read the latest scene and propose EXACTLY 3–4 short, concrete and DIFFERENT actions the hero can take right now (imperative, 3–6 words). Reply with a JSON object only: {\"actions\":[{\"emoji\":\"...\",\"label\":\"...\"}]}. Put the emoji only in the emoji field; the label must be words, with no symbols. No prose, numbering or explanations.",
+    "emojiHint": "exactly one emoji",
+    "labelHint": "the action in words, imperative, 3-6 words, no emoji",
+    "reminder": "{passage}\n\nReply with the JSON object only. emoji = one emoji; label = the action in words only."
   },
   "kickoff": "Begin the story right now. Write the opening passage: establish the scene, the player's character and the immediate situation in the second person, ending on a moment that invites the player's first action. Don't ask the player setup questions; the story has already begun.",
   "continue": "Continue the story exactly where it left off. The player takes no action this turn — develop the scene naturally through narration, dialogue or events, then pause on a moment that invites their next action.",
@@ -152,6 +159,18 @@
         "name": "Confusion",
         "note": "Thoughts tangle."
       }
-    ]
+    ],
+    "questOffered": "📜 Quest offered: {title}{giver}",
+    "questTaken": "📜 Quest accepted: {title}",
+    "questCompleted": "✅ Quest completed: {title}{reward}",
+    "questFailed": "❌ Quest failed: {title}{reason}",
+    "xpGained": "✨ {name}: +{amount} XP{reason} → {xp}",
+    "levelUp": "🎉 {name} — level {level}! HP: {hp}/{max}",
+    "questGiver": " — from {value}",
+    "questReward": " — reward: {value}",
+    "questReason": " ({value})",
+    "roll": "🎲 {who} · {label}: d20 {d20} {mod} = {total} vs {dc} → {verdict}",
+    "rollLabel": "check",
+    "achievement": "Achievement: “{title}” — {summary}"
   }
 }

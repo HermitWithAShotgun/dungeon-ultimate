@@ -83,6 +83,18 @@ pub struct RpgLabels {
     pub quests: String,
     #[serde(default = "default_quest_conditions_label")]
     pub quest_conditions: String,
+    #[serde(default = "default_no_actors")]
+    pub no_actors: String,
+    #[serde(default = "default_state_header")]
+    pub state_header: String,
+}
+
+fn default_no_actors() -> String {
+    "• (нет игровых персонажей)".to_string()
+}
+
+fn default_state_header() -> String {
+    "СОСТОЯНИЕ ИГРЫ (authoritative — опирайся на него, НЕ выдумывай числа):".to_string()
 }
 
 fn default_quests_label() -> String {
@@ -109,10 +121,31 @@ pub struct Suggest {
     pub fields: SuggestFields,
 }
 
+/// Подсказки для чипсов действий. Описания полей JSON-схемы и напоминание переводятся вместе
+/// с системным промптом: раньше они были жёстко русскими, и англоязычный игрок получал
+/// кнопки с русскими подписями даже при английском промпте нарратора.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Actions {
     pub system: String,
+    #[serde(default = "default_emoji_hint")]
+    pub emoji_hint: String,
+    #[serde(default = "default_label_hint")]
+    pub label_hint: String,
+    #[serde(default = "default_action_reminder")]
+    pub reminder: String,
+}
+
+fn default_emoji_hint() -> String {
+    "ровно один значок".to_string()
+}
+
+fn default_label_hint() -> String {
+    "действие СЛОВАМИ, повелительно, 3-6 слов, без значков".to_string()
+}
+
+fn default_action_reminder() -> String {
+    "{passage}\n\nОтветь только JSON-объектом: emoji — один значок, label — действие словами.".to_string()
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -213,6 +246,30 @@ mod tests {
         // Защита от копипасты: русский и английский нарраторы обязаны различаться.
         assert_ne!(prompts_for(Language::Ru).narrator, prompts_for(Language::En).narrator);
         assert_ne!(prompts_for(Language::Zh).kickoff, prompts_for(Language::Ja).kickoff);
+    }
+
+    #[test]
+    fn action_chips_and_journal_follow_the_game_language() {
+        // Регистр чипсов и подписи журнала — самые заметные «русские artefacts» в
+        // англоязычной игре. Проверяем и шаблоны, и то, что русский текст не просочился.
+        for language in Language::ALL {
+            let set = prompts_for(language);
+            assert!(set.actions.reminder.contains("{passage}"), "{language:?}: нет пассажа");
+            assert!(!set.actions.label_hint.trim().is_empty(), "{language:?}: пустая подсказка поля");
+            assert!(set.journal.quest_offered.contains("{title}"), "{language:?}: нет заголовка");
+            assert!(set.journal.xp_gained.contains("{amount}"), "{language:?}: нет опыта");
+            assert!(set.journal.roll.contains("{verdict}"), "{language:?}: нет вердикта");
+            assert!(set.journal.achievement.contains("{title}"), "{language:?}: нет достижения");
+            if language == Language::En {
+                assert!(set.rpg.state_header.contains("GAME STATE"));
+            }
+            if language != Language::Ru {
+                assert!(!set.actions.reminder.contains("Ответь"), "{language:?}: русское напоминание");
+                assert!(!set.actions.label_hint.contains("значк"), "{language:?}: русская подсказка поля");
+                assert!(!set.journal.quest_offered.contains("задан"), "{language:?}: русский журнал");
+                assert!(!set.rpg.quests.contains("ЗАДАНИЯ"), "{language:?}: русский заголовок");
+            }
+        }
     }
 
     #[test]

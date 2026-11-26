@@ -101,6 +101,30 @@ fn default_level_up() -> String {
     "🎉 {name} — уровень {level}! Запас сил: {hp}/{max}".to_string()
 }
 
+fn default_quest_giver() -> String {
+    " — от {value}".to_string()
+}
+
+fn default_quest_reward() -> String {
+    " — награда: {value}".to_string()
+}
+
+fn default_quest_reason() -> String {
+    " ({value})".to_string()
+}
+
+fn default_roll() -> String {
+    "🎲 {who} · {label}: d20 {d20} {mod} = {total} против {dc} → {verdict}".to_string()
+}
+
+fn default_roll_label() -> String {
+    "проверка".to_string()
+}
+
+fn default_achievement() -> String {
+    "Достижение: «{title}» — {summary}".to_string()
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct RandomEventText {
     pub name: String,
@@ -147,6 +171,19 @@ pub struct JournalLabels {
     pub xp_gained: String,
     #[serde(default = "default_level_up")]
     pub level_up: String,
+    /// Приставки к заголовку задания и броску. Раньше они были русскими при любом языке.
+    #[serde(default = "default_quest_giver")]
+    pub quest_giver: String,
+    #[serde(default = "default_quest_reward")]
+    pub quest_reward: String,
+    #[serde(default = "default_quest_reason")]
+    pub quest_reason: String,
+    #[serde(default = "default_roll")]
+    pub roll: String,
+    #[serde(default = "default_roll_label")]
+    pub roll_label: String,
+    #[serde(default = "default_achievement")]
+    pub achievement: String,
     /// По порядку соответствуют встроенному перечню случайных событий.
     #[serde(default)]
     pub random_events: Vec<RandomEventText>,

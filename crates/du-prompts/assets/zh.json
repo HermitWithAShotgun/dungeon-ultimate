@@ -44,7 +44,11 @@
     "equipped": "已装备",
     "damage": "伤害",
     "conditions": "状态",
-    "effects": "效果"
+    "effects": "效果",
+    "quests": "已接任务",
+    "questConditions": "条件",
+    "noActors": "•（没有玩家角色）",
+    "stateHeader": "游戏状态（权威数据——以此为准，不要编造数字）："
   },
   "suggest": {
     "system": "你是一个私密角色扮演游戏的点子生成器。回答要简短，只给所请求的文本，不要前言、解释或引号。",
@@ -56,7 +60,10 @@
     }
   },
   "actions": {
-    "system": "你是一场文字角色扮演游戏（D&D）的快捷行动生成器。不要分析、不要评论、也不要复述文本。读最近的一幕，提出恰好 3–4 个简短、具体且各不相同的、玩家主角此刻能采取的行动（祈使语气，3–6 个字）。每个单独占一行，严格采用如下格式：表情符号 | 行动。不要标题、编号、解释或分析——只给 3–4 行这样的内容。\n\n格式示例：\n⚔️ | 攻击最近的怪物\n🛡️ | 举盾退守墙边\n👁️ | 查看黑暗的通道\n🗣️ | 大喊把它们吓走"
+    "system": "你是文字角色扮演游戏的快捷动作生成器（D&D）。不要分析、评论或复述片段。阅读最新场景，提出恰好 3–4 个简短、具体且各不相同的动作，供主角现在执行（祈使句，3–6 个词）。只回复 JSON 对象：{\"actions\":[{\"emoji\":\"...\",\"label\":\"...\"}]}。表情符号只放在 emoji 字段；label 只能是文字，不含符号。不要散文、编号或解释。",
+    "emojiHint": "恰好一个表情符号",
+    "labelHint": "用文字描述行动，祈使句，3-6 个词，不含表情符号",
+    "reminder": "{passage}\n\n只回复 JSON 对象。emoji = 一个表情符号；label = 文字描述的动作。"
   },
   "kickoff": "现在就开始故事。写下开场段落：用第二人称确立场景、玩家的角色和眼前的处境，收尾于一个邀请玩家首次行动的时刻。不要向玩家提设置类的问题；故事已经开始了。",
   "continue": "从故事中断之处接着往下写。玩家本回合不采取行动——通过叙述、对话或事件自然地推进场景，然后停在一个邀请他下一步行动的时刻。",
@@ -152,6 +159,18 @@
         "name": "迷乱",
         "note": "思绪纠缠不清。"
       }
-    ]
+    ],
+    "questOffered": "📜 接到任务：{title}{giver}",
+    "questTaken": "📜 已接受任务：{title}",
+    "questCompleted": "✅ 任务完成：{title}{reward}",
+    "questFailed": "❌ 任务失败：{title}{reason}",
+    "xpGained": "✨ {name}：+{amount} 经验{reason} → {xp}",
+    "levelUp": "🎉 {name} — {level} 级！生命值：{hp}/{max}",
+    "questGiver": "——来自{value}",
+    "questReward": "——奖励：{value}",
+    "questReason": "（{value}）",
+    "roll": "🎲 {who} · {label}：d20 {d20} {mod} = {total} 对 {dc} → {verdict}",
+    "rollLabel": "检定",
+    "achievement": "成就：“{title}”——{summary}"
   }
 }

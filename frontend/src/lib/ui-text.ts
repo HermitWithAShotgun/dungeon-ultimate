@@ -84,6 +84,12 @@ export type UiText = {
   stageFrame: string;
   stageVoice: string;
   stageActions: string;
+  stageAgent: string;
+  stageCloud: string;
+  stageLocalServer: string;
+  stageLoading: string;
+  narrationFailed: string;
+  untitledStory: string;
 
   // Где что считается
   allOnMyCard: string;
@@ -180,6 +186,12 @@ const RU: UiText = {
   stageFrame: "Оператор выбирает кадр…",
   stageVoice: "Читаю вслух…",
   stageActions: "Подбираю варианты действий…",
+  stageAgent: "Агент",
+  stageCloud: "Облако",
+  stageLocalServer: "Локальный сервер",
+  stageLoading: "Загрузка",
+  narrationFailed: "Озвучка не удалась",
+  untitledStory: "Безымянная история",
 
   collapse: "Свернуть",
   frameRequested: "Запрошен инструмент изображений.",
@@ -272,6 +284,12 @@ const EN: UiText = {
   stageFrame: "The camera is choosing a shot…",
   stageVoice: "Reading aloud…",
   stageActions: "Picking what you could do…",
+  stageAgent: "Agent",
+  stageCloud: "Cloud",
+  stageLocalServer: "Local server",
+  stageLoading: "Loading",
+  narrationFailed: "Narration failed",
+  untitledStory: "Untitled story",
 
   collapse: "Collapse",
   frameRequested: "The image tool was called.",
@@ -364,6 +382,12 @@ const ES: UiText = {
   stageFrame: "La cámara elige el plano…",
   stageVoice: "Leyendo en voz alta…",
   stageActions: "Buscando qué podrías hacer…",
+  stageAgent: "Agente",
+  stageCloud: "Nube",
+  stageLocalServer: "Servidor local",
+  stageLoading: "Cargando",
+  narrationFailed: "La narración falló",
+  untitledStory: "Historia sin título",
 
   collapse: "Plegar",
   frameRequested: "Se ha pedido la herramienta de imagen.",
@@ -456,6 +480,12 @@ const FR: UiText = {
   stageFrame: "La caméra choisit le plan…",
   stageVoice: "Lecture à voix haute…",
   stageActions: "Je cherche ce que tu pourrais faire…",
+  stageAgent: "Agent",
+  stageCloud: "Cloud",
+  stageLocalServer: "Serveur local",
+  stageLoading: "Chargement",
+  narrationFailed: "La narration a échoué",
+  untitledStory: "Histoire sans titre",
 
   collapse: "Replier",
   frameRequested: "L'outil d'image a été demandé.",
@@ -548,6 +578,12 @@ const DE: UiText = {
   stageFrame: "Die Kamera wählt die Einstellung…",
   stageVoice: "Ich lese vor…",
   stageActions: "Ich suche, was du tun könntest…",
+  stageAgent: "Agent",
+  stageCloud: "Cloud",
+  stageLocalServer: "Lokaler Server",
+  stageLoading: "Lädt",
+  narrationFailed: "Vorlesen fehlgeschlagen",
+  untitledStory: "Unbenannte Geschichte",
 
   collapse: "Einklappen",
   frameRequested: "Das Bildwerkzeug wurde gerufen.",
@@ -640,6 +676,12 @@ const ZH: UiText = {
   stageFrame: "镜头正在选取画面……",
   stageVoice: "正在朗读……",
   stageActions: "正在想你能做什么……",
+  stageAgent: "代理",
+  stageCloud: "云端",
+  stageLocalServer: "本地服务器",
+  stageLoading: "加载中",
+  narrationFailed: "朗读失败",
+  untitledStory: "未命名故事",
 
   collapse: "收起",
   frameRequested: "已调用绘图工具。",
@@ -732,6 +774,12 @@ const JA: UiText = {
   stageFrame: "カメラが構図を選んでいる……",
   stageVoice: "読み上げている……",
   stageActions: "できることを探している……",
+  stageAgent: "エージェント",
+  stageCloud: "クラウド",
+  stageLocalServer: "ローカルサーバー",
+  stageLoading: "読み込み中",
+  narrationFailed: "読み上げに失敗",
+  untitledStory: "無題の物語",
 
   collapse: "たたむ",
   frameRequested: "画像の道具が呼ばれた。",

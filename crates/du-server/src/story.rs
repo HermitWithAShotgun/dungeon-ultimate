@@ -275,7 +275,7 @@ fn to_named(event: &Value) -> Option<Event> {
                 return Some(
                     Event::default()
                         .event("notice")
-                        .data(json!({ "text": format!("Озвучка не удалась: {reason}") }).to_string()),
+                        .data(json!({ "voiceError": reason }).to_string()),
                 );
             }
             let stage = event.get("stage").and_then(Value::as_str)?;
@@ -756,6 +756,7 @@ fn run_turn(
             .map(|events| events.into_iter().map(|event| event.id).collect())
             .unwrap_or_default();
         let talk = vec![
+            json!({ "role": "system", "content": turn::language_directive(settings.language) }),
             json!({ "role": "system", "content":
                 "Ты ведёшь эту партию. Перед тем как решать, посмотри состояние инструментами:                  открытые задания, лист персонажей, журнал. Если в отрывке ВЫПОЛНЕНО условие                  взятого задания — закрой его. Если заговорил тот, кого нет в листе, — заведи                  его character_add с полом и возрастом, чтобы у него был свой голос.                  Если в сцене есть что показать — новое место, лицо, встреча, удар — закажи                  кадр draw_frame с подробным английским промптом; на разговор в уже                  нарисованной комнате кадр не нужен. Если игрок отличился поступком —                  посмотри achievements_list и награди его achievement_grant, выбрав значок                  через icons_search. Ничего не выдумывай: числа и исходы берутся                  инструментами. В конце ответь одним коротким предложением о том, что ты                  сделал." }),
             json!({ "role": "user", "content": narration.clone() }),
@@ -849,6 +850,9 @@ fn run_turn(
                 )),
             );
         }
+        // Промпт механики служебный, но названия заданий и подписи он пишет сам — без
+        // языковой директивы они уходили в журнал по-русски в англоязычной партии.
+        ask.insert(1, Message::system(turn::language_directive(settings.language)));
         match client.chat_json(&ask, &turn::structured_sampling(), &turn::engine_schema()) {
             Err(error) => tracing::warn!("проход механики не удался: {error}"),
             Ok(raw) => {

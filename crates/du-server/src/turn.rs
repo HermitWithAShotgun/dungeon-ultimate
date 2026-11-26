@@ -40,7 +40,7 @@ pub fn build_rpg_section(
                 let value = actor.rpg.stats.get(*ability);
                 let modifier = ability_mod(value);
                 let sign = if modifier >= 0 { "+" } else { "" };
-                format!("{} {value} ({sign}{modifier})", ability.label_ru())
+                format!("{} {value} ({sign}{modifier})", prompts.journal.stat(ability.key()))
             })
             .collect::<Vec<_>>()
             .join(", ");
@@ -161,8 +161,8 @@ pub fn build_rpg_section(
         format!("\n\n{}:\n{rows}", prompts.rpg.quests)
     };
 
-    let head = if lines.is_empty() { "• (нет игровых персонажей)".to_string() } else { lines.join("\n") };
-    format!("СОСТОЯНИЕ ИГРЫ (authoritative — опирайся на него, НЕ выдумывай числа):\n{head}{inventory}{foes}{quests_block}\n\n{rules}")
+    let head = if lines.is_empty() { prompts.rpg.no_actors.clone() } else { lines.join("\n") };
+    format!("{}\n{head}{inventory}{foes}{quests_block}\n\n{rules}", prompts.rpg.state_header)
 }
 
 /// Указание языка отдельным системным сообщением ПОСЛЕ промпта нарратора: так оно

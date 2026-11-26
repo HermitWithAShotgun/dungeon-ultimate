@@ -44,7 +44,11 @@
     "equipped": "équipé",
     "damage": "dégâts",
     "conditions": "États",
-    "effects": "Effets"
+    "effects": "Effets",
+    "quests": "QUÊTES ACCEPTÉES",
+    "questConditions": "conditions",
+    "noActors": "• (aucun personnage joueur)",
+    "stateHeader": "ÉTAT DU JEU (autoritatif — appuie-toi dessus, N'invente PAS de chiffres) :"
   },
   "suggest": {
     "system": "Tu es un générateur d'idées pour une partie de jeu de rôle privée. Réponds brièvement, uniquement par le texte demandé, sans introduction, explication ni guillemets.",
@@ -56,7 +60,10 @@
     }
   },
   "actions": {
-    "system": "Tu es un générateur d'actions rapides pour un jeu de rôle textuel (D&D). N'analyse PAS, ne commente PAS et ne résume PAS le texte. Lis la dernière scène et propose EXACTEMENT 3 à 4 actions courtes, concrètes et DIFFÉRENTES que le héros-joueur peut accomplir tout de suite (à l'impératif, 3 à 6 mots). Chacune sur une ligne séparée, STRICTEMENT au format : emoji | action. Aucun titre, numérotation, explication ni analyse — UNIQUEMENT ces 3 à 4 lignes.\n\nExemple de format :\n⚔️ | Attaquer la créature la plus proche\n🛡️ | Se couvrir et reculer vers le mur\n👁️ | Inspecter le passage sombre\n🗣️ | Crier pour les effrayer"
+    "system": "Tu es un générateur d'actions rapides pour un jeu de rôle textuel (D&D). N'analyse PAS, ne commente PAS et ne résume PAS le passage. Lis la dernière scène et propose EXACTEMENT 3–4 actions courtes, concrètes et DIFFÉRENTES que le héros peut accomplir maintenant (à l'impératif, 3–6 mots). Réponds uniquement avec un objet JSON : {\"actions\":[{\"emoji\":\"...\",\"label\":\"...\"}]}. L'emoji va seulement dans le champ emoji ; label ne contient que des mots, sans symbole. Pas de prose, de numérotation ni d'explications.",
+    "emojiHint": "exactement un emoji",
+    "labelHint": "l'action en mots, à l'impératif, 3-6 mots, sans emoji",
+    "reminder": "{passage}\n\nRéponds uniquement avec l'objet JSON. emoji = un emoji ; label = l'action en mots."
   },
   "kickoff": "Commence l'histoire maintenant. Écris un passage d'introduction : plante le décor, le personnage du joueur et la situation immédiate, à la deuxième personne, en terminant sur un moment qui invite la première action du joueur. Ne pose pas de questions de configuration au joueur ; l'histoire a déjà commencé.",
   "continue": "Poursuis l'histoire exactement là où elle s'est interrompue. Le joueur n'accomplit aucune action à ce tour — développe la scène naturellement par la narration, le dialogue ou les événements, puis fais une pause sur un moment qui invite sa prochaine action.",
@@ -152,6 +159,18 @@
         "name": "Confusion",
         "note": "Les pensées s'emmêlent."
       }
-    ]
+    ],
+    "questOffered": "📜 Quête proposée : {title}{giver}",
+    "questTaken": "📜 Quête acceptée : {title}",
+    "questCompleted": "✅ Quête terminée : {title}{reward}",
+    "questFailed": "❌ Quête échouée : {title}{reason}",
+    "xpGained": "✨ {name} : +{amount} XP{reason} → {xp}",
+    "levelUp": "🎉 {name} — niveau {level} ! PV : {hp}/{max}",
+    "questGiver": " — par {value}",
+    "questReward": " — récompense : {value}",
+    "questReason": " ({value})",
+    "roll": "🎲 {who} · {label} : d20 {d20} {mod} = {total} contre {dc} → {verdict}",
+    "rollLabel": "test",
+    "achievement": "Succès : « {title} » — {summary}"
   }
 }

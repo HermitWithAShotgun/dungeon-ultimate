@@ -56,7 +56,7 @@ import {
 } from "react";
 import { api } from "./lib/api";
 import { cn } from "./lib/cn";
-import { DEFAULT_STORY_SETTINGS, titleFromInput } from "./lib/defaults";
+import { DEFAULT_STORY_SETTINGS, localizedStorySettings, titleFromInput } from "./lib/defaults";
 import { LOCAL_TEXT_MODELS, type LocalTextModelId, type TextProvider } from "./lib/text-models";
 import {
   LANGUAGE_LABELS,
@@ -137,6 +137,10 @@ function stageWords(ui: UiText): Record<string, string> {
     "кадр": ui.stageFrame,
     "озвучка": ui.stageVoice,
     "действия": ui.stageActions,
+    "агент": ui.stageAgent,
+    "облако": ui.stageCloud,
+    "локальный сервер": ui.stageLocalServer,
+    "загрузка": ui.stageLoading,
   };
 }
 
@@ -680,9 +684,16 @@ export default function Home() {
 
   const applyDefaultSettings = useCallback(() => {
     const defaults = defaultSettingsRef.current;
-    setSettings(defaults);
-    lastSavedSettingsRef.current = JSON.stringify(defaults);
-  }, []);
+    const localized = localizedStorySettings(settings.language);
+    const merged = {
+      ...defaults,
+      world: defaults.world?.trim() ? defaults.world : localized.world,
+      style: defaults.style?.trim() ? defaults.style : localized.style,
+      language: settings.language,
+    };
+    setSettings(merged);
+    lastSavedSettingsRef.current = JSON.stringify(merged);
+  }, [settings.language]);
 
   const refreshChats = useCallback(async () => {
     const response = await fetch("/api/chats", { cache: "no-store" });
@@ -1748,6 +1759,8 @@ export default function Home() {
             url?: string;
             /// Что сервер считает прямо сейчас.
             stage?: string;
+            /// Причина неудачной озвучки; подпись ошибки берём из словаря интерфейса.
+            voiceError?: string;
           };
           try {
             data = JSON.parse(dataRaw);
@@ -1766,7 +1779,9 @@ export default function Home() {
           } else if (eventName === "notice") {
             // Ход состоялся, но что-то из него не вышло — говорим об этом прямо, а не
             // оставляем игрока гадать, почему стало тихо.
-            if (data.text) {
+            if (data.voiceError) {
+              setError(`${ui.narrationFailed}: ${String(data.voiceError)}`);
+            } else if (data.text) {
               setError(String(data.text));
             }
           } else if (eventName === "clip") {
@@ -2222,9 +2237,9 @@ export default function Home() {
         // right pronouns and the portrait/scene images draw the right person.
         const genderNote =
           options.hero.gender === "male"
-            ? "Пол: мужской."
+            ? `${settings_.characterGender}: ${settings_.genderMale}.`
             : options.hero.gender === "female"
-              ? "Пол: женский."
+              ? `${settings_.characterGender}: ${settings_.genderFemale}.`
               : "";
         const heroDetails = [genderNote, options.hero.persona].filter(Boolean).join(" ");
         await fetch(`/api/chats/${created.chat.id}/characters`, {
@@ -3261,7 +3276,7 @@ function NewStoryDialog({
         // Carry gender in the world string too — with RPG off there is no hero
         // character, so the details note isn't written and this is the only signal.
         world: `${bare}${genderClause}`,
-        title: titleFromInput(bare),
+        title: titleFromInput(bare, ui.untitledStory),
         hero: { name: name.trim() || settings_.hero, persona: role.trim(), gender },
         opening,
       });
@@ -3274,6 +3289,7 @@ function NewStoryDialog({
       world: `${preset.seed} You are ${protagonist}.${genderClause}`,
       title: titleFromInput(
         name.trim() ? `${name.trim()} · ${preset.label}` : `${preset.label} · ${persona}`,
+        ui.untitledStory,
       ),
       hero: { name: name.trim() || settings_.hero, persona, gender },
       opening,

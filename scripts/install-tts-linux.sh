@@ -125,6 +125,21 @@ with zipfile.ZipFile(archive) as z:
 print("voices:", len([n for n in os.listdir(target) if n.lower().endswith((".wav", ".mp3", ".flac"))]))
 PY
 
+# 4b. Curated English male voices from CSTR VCTK (ODC-BY, recorded for voice-cloning
+#     research). They ship with the fork and are pinned by SHA-256, so a bad checkout
+#     fails loudly instead of installing a corrupt reference.
+EN_VOICE_PACK="$ROOT_DIR/voices-english-vctk"
+if [[ -d "$EN_VOICE_PACK" ]]; then
+  (cd "$EN_VOICE_PACK" && sha256sum -c --status SHA256SUMS.txt)
+  for src in "$EN_VOICE_PACK"/*.wav "$EN_VOICE_PACK"/*.txt; do
+    [[ -e "$src" ]] || continue
+    dest="$VOICE_DIR/$(basename "$src")"
+    [[ -e "$dest" ]] || cp "$src" "$dest"
+  done
+  [[ -e "$VOICE_DIR/VCTK-ATTRIBUTION.txt" ]] || cp "$EN_VOICE_PACK/ATTRIBUTION.txt" "$VOICE_DIR/VCTK-ATTRIBUTION.txt"
+  echo "==> Added English male voices from VCTK"
+fi
+
 # Upstream's default story voice is "Vedushchiy", but this public voice pack has no clip
 # by that name. Give the default a real narrator clip so a fresh install speaks without
 # making the player pick a voice by hand. A short 16 kHz mono WAV is used because the

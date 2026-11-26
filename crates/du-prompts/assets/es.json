@@ -44,7 +44,11 @@
     "equipped": "equipado",
     "damage": "daño",
     "conditions": "Estados",
-    "effects": "Efectos"
+    "effects": "Efectos",
+    "quests": "MISIONES ACEPTADAS",
+    "questConditions": "condiciones",
+    "noActors": "• (no hay personajes jugadores)",
+    "stateHeader": "ESTADO DEL JUEGO (autoritativo — basate en él, NO inventes números):"
   },
   "suggest": {
     "system": "Eres un generador de ideas para una partida de rol privada. Responde de forma breve, solo con el texto pedido, sin introducciones, explicaciones ni comillas.",
@@ -56,7 +60,10 @@
     }
   },
   "actions": {
-    "system": "Eres un generador de acciones rápidas para una partida de rol textual (D&D). NO analices, NO comentes y NO resumas el texto. Lee la última escena y propón EXACTAMENTE 3–4 acciones cortas, concretas y DISTINTAS que el héroe-jugador pueda realizar ahora mismo (en imperativo, 3–6 palabras). Cada una en una línea aparte, ESTRICTAMENTE con el formato: emoji | acción. Sin títulos, numeración, explicaciones ni análisis — SOLO esas 3–4 líneas.\n\nEjemplo de formato:\n⚔️ | Atacar a la criatura más cercana\n🛡️ | Cubrirte y retroceder hacia la pared\n👁️ | Inspeccionar el pasadizo oscuro\n🗣️ | Gritar para espantarlas"
+    "system": "Eres un generador de acciones rápidas para un juego de rol por texto (D&D). NO analices, comentes ni resumas el pasaje. Lee la última escena y propón EXACTAMENTE 3–4 acciones breves, concretas y DIFERENTES que el héroe puede hacer ahora mismo (en imperativo, 3–6 palabras). Responde solo con un objeto JSON: {\"actions\":[{\"emoji\":\"...\",\"label\":\"...\"}]}. El emoji va solo en el campo emoji; label debe contener solo palabras, sin símbolos. Sin prosa, numeración ni explicaciones.",
+    "emojiHint": "exactamente un emoji",
+    "labelHint": "la acción en palabras, en imperativo, 3-6 palabras, sin emojis",
+    "reminder": "{passage}\n\nResponde solo con el objeto JSON. emoji = un emoji; label = la acción en palabras."
   },
   "kickoff": "Empieza la historia ahora mismo. Escribe un fragmento introductorio: establece la escena, el personaje del jugador y la situación inmediata en segunda persona, terminando en un momento que invite a la primera acción del jugador. No le hagas preguntas de configuración al jugador; la historia ya ha comenzado.",
   "continue": "Continúa la historia justo donde se interrumpió. El jugador no realiza ninguna acción en este turno — desarrolla la escena con naturalidad mediante la narración, el diálogo o los eventos, y luego haz una pausa en un momento que invite a su siguiente acción.",
@@ -152,6 +159,18 @@
         "name": "Confusión",
         "note": "Los pensamientos se enredan."
       }
-    ]
+    ],
+    "questOffered": "📜 Misión ofrecida: {title}{giver}",
+    "questTaken": "📜 Misión aceptada: {title}",
+    "questCompleted": "✅ Misión completada: {title}{reward}",
+    "questFailed": "❌ Misión fallida: {title}{reason}",
+    "xpGained": "✨ {name}: +{amount} EXP{reason} → {xp}",
+    "levelUp": "🎉 {name} — ¡nivel {level}! HP: {hp}/{max}",
+    "questGiver": " — de {value}",
+    "questReward": " — recompensa: {value}",
+    "questReason": " ({value})",
+    "roll": "🎲 {who} · {label}: d20 {d20} {mod} = {total} contra {dc} → {verdict}",
+    "rollLabel": "comprobación",
+    "achievement": "Logro: «{title}» — {summary}"
   }
 }

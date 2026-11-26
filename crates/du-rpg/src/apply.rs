@@ -258,7 +258,7 @@ fn award_xp(
     let tail = reason
         .map(str::trim)
         .filter(|reason| !reason.is_empty())
-        .map(|reason| format!(" ({reason})"))
+        .map(|reason| render(&labels.quest_reason, &[("value", reason)]))
         .unwrap_or_default();
     result.events.push(make_event(
         EventKind::Level,
@@ -516,7 +516,7 @@ pub fn apply_game_update(
             None => (10, labels.player.clone()),
         };
         let check = roll_check(score, roll.dc, 0);
-        let label = roll.label.clone().unwrap_or_else(|| ability.label_ru().to_string());
+        let label = roll.label.clone().unwrap_or_else(|| labels.stat(ability.key()).to_string());
         let verdict = match check.crit {
             Some(Crit::Success) => &labels.verdict.crit_success,
             Some(Crit::Fail) => &labels.verdict.crit_fail,
@@ -594,7 +594,7 @@ pub fn apply_game_update(
         let giver = quest
             .giver
             .as_deref()
-            .map(|giver| format!(" — от {giver}"))
+            .map(|giver| render(&labels.quest_giver, &[("value", giver)]))
             .unwrap_or_default();
         result.events.push(make_event(
             EventKind::Quest,
@@ -625,7 +625,7 @@ pub fn apply_game_update(
             .as_deref()
             .map(str::trim)
             .filter(|reason| !reason.is_empty())
-            .map(|reason| format!(" ({reason})"))
+            .map(|reason| render(&labels.quest_reason, &[("value", reason)]))
             .unwrap_or_default();
         let line = if status == QuestStatus::Done {
             let reward = quest
@@ -635,7 +635,7 @@ pub fn apply_game_update(
                 // Модель нередко пишет в награду отговорку вместо награды — показывать
                 // игроку «награда: Не указано» хуже, чем не писать ничего.
                 .filter(|reward| !is_placeholder(reward))
-                .map(|reward| format!(" — награда: {reward}"))
+                .map(|reward| render(&labels.quest_reward, &[("value", reward)]))
                 .unwrap_or(tail.clone());
             render(&labels.quest_completed, &[("title", &quest.title), ("reward", &reward)])
         } else {

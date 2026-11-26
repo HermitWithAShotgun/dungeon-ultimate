@@ -199,6 +199,14 @@ from a neutral Russian male narrator clip (plus its transcript), so a fresh
 install speaks without asking the player to pick a voice first. Any other clip
 in the pack can still be selected in the story settings.
 
+For English speakers the installer also copies six consented male reference
+clips from the CSTR VCTK corpus (`EN_Male_VCTK_*`: Surrey, Cumbria, Southern,
+Fife, London, Dublin). They are 16 kHz mono WAVs with ground-truth transcripts,
+pinned by `voices-english-vctk/SHA256SUMS.txt`, and the ODC-BY attribution is
+installed as `models/voices/VCTK-ATTRIBUTION.txt`. The corpus was recorded for
+voice-cloning research; use them only within the licences of both VCTK and
+Higgs Audio (no non-consensual impersonation).
+
 Like the narrator and image engines, the voice engine occupies the GPU only for
 as long as it is needed: loading it stops `llama-server`, and an image turn drops
 the voice engine before the sd.cpp weights come in.
@@ -212,6 +220,23 @@ the GPU.
 Verified sequence: `/api/tts` returned a playable 24 kHz mono WAV, an image turn
 released the voice engine and rendered a PNG, and the following `/api/tts` call
 synthesized another clip with no orphan model processes.
+
+## Language audit
+
+Interface tables in `frontend/src/lib/ui-text*.ts` were already localized. The
+Russian text English players saw came from backend strings, and has been moved
+into the seven language packs in `crates/du-prompts/assets/`:
+
+- Quick-action chips (the buttons after a fight or encounter): the JSON schema
+  descriptions, reminder, and action prompt are now language-specific. Verified
+  through `/api/actions`: English passages produced English labels, Russian
+  passages still produced Russian ones.
+- Journal lines for quests, XP, level-ups, rolls and achievements, plus the game
+  state header and ability names, now follow the story language.
+- Tool calls and the mechanics pass receive the same language directive as the
+  narrator, so model-written quest titles no longer default to Russian.
+- HUD stage names, narration-failure notices, and default story/world text are
+  translated through the UI dictionary; an English game now starts in English.
 
 ## Pinokio launcher
 
